@@ -1,0 +1,10 @@
+---
+- name: rebuild_module
+  command:
+    cmd: "dkms build -m acer-wmi-battery -v {{ acer_battery_version }}"
+  notify: load_module
+
+- name: load_module
+  modprobe:
+    name: acer-wmi-battery
+    state: present

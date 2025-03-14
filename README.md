@@ -50,6 +50,28 @@ ansible-playbook -i inventory site.yml --check
 ansible-playbook -i inventory site.yml
 ```
 
+The role will automatically:
+- Install required packages for your distribution
+- Clone or update the Acer WMI Battery module from the upstream repository
+- Configure DKMS for automatic rebuilding when kernel updates occur
+- Build and install the module
+- Configure module autoloading
+
+### Upstream Updates
+
+The role automatically checks for updates from the upstream repository (https://github.com/frederik-h/acer-wmi-battery) during each playbook run. If updates are available:
+
+1. The repository will be updated to the latest version
+2. DKMS will automatically rebuild the module
+3. The new version will be loaded if the build is successful
+
+You can manually trigger an update check by running the playbook again:
+```bash
+ansible-playbook -i inventory site.yml
+```
+
+### Module Management
+
 2. Verify the installation:
 ```bash
 # Check if module is loaded

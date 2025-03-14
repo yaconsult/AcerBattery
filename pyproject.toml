@@ -39,11 +39,19 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--verbose --cov=roles --cov-report=term-missing --mypy --black"
+addopts = "--verbose --cov=. --cov-report=term-missing --mypy --black"
 
 [tool.coverage.run]
-source = ["roles"]
+source = ["."]
 branch = true
+parallel = true
+data_file = ".coverage"
+
+[tool.coverage.paths]
+source = [
+    ".",
+    ".venv/lib/python*/site-packages"
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -53,6 +61,8 @@ exclude_lines = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
 ]
+show_missing = true
+fail_under = 80
 
 [tool.bandit]
 targets = ["roles"]

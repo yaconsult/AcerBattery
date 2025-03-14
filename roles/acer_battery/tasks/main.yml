@@ -1,4 +1,29 @@
 ---
+- name: Check if acer-wmi-battery directory exists
+  stat:
+    path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
+  register: module_dir
+
+- name: Clone acer-wmi-battery repository
+  git:
+    repo: "https://github.com/frederik-h/acer-wmi-battery.git"
+    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
+    version: "master"
+    update: yes
+    force: yes
+  register: git_clone
+  when: not module_dir.stat.exists
+
+- name: Update acer-wmi-battery repository if it exists
+  git:
+    repo: "https://github.com/frederik-h/acer-wmi-battery.git"
+    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
+    version: "master"
+    update: yes
+  register: git_update
+  when: module_dir.stat.exists
+  notify: rebuild_module
+
 - name: Install required packages
   package:
     name: "{{ item }}"
@@ -6,37 +31,33 @@
     update_cache: yes
   loop: "{{ packages[ansible_os_family] }}"
 
-- name: Clone acer-wmi-battery repository
-  git:
-    repo: https://github.com/frederik-h/acer-wmi-battery.git
-    dest: /usr/src/acer-wmi-battery
-    version: master
-
-- name: Build kernel module
-  command:
-    cmd: make
-    chdir: /usr/src/acer-wmi-battery
-  register: build_result
-  changed_when: build_result.rc == 0
-
-- name: Install DKMS configuration
+- name: Copy DKMS configuration
   template:
     src: dkms.conf.j2
-    dest: /usr/src/acer-wmi-battery/dkms.conf
+    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/dkms.conf"
     mode: '0644'
+  notify: rebuild_module
 
 - name: Register with DKMS
   command:
-    cmd: dkms add -m acer-wmi-battery -v {{ acer_battery_version }}
-    chdir: /usr/src/acer-wmi-battery
+    cmd: "dkms add -m acer-wmi-battery -v {{ acer_battery_version }}"
   args:
-    creates: /var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/source
+    creates: "/var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/source"
+  notify: rebuild_module
 
-- name: Build and install with DKMS
+- name: Build and install module
   command:
-    cmd: dkms install -m acer-wmi-battery -v {{ acer_battery_version }}
+    cmd: "dkms install -m acer-wmi-battery -v {{ acer_battery_version }}"
   args:
-    creates: /var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/{{ ansible_kernel }}/{{ ansible_architecture }}/module/acer-wmi-battery.ko
+    creates: "/lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko"
+  notify: load_module
+
+- name: Configure module autoload
+  copy:
+    content: "acer-wmi-battery"
+    dest: /etc/modules-load.d/acer-wmi-battery.conf
+    mode: '0644'
+  notify: load_module
 
 - name: Load module
   modprobe:
