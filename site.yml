@@ -1,0 +1,6 @@
+---
+- name: Install and configure Acer WMI Battery module
+  hosts: all
+  become: true
+  roles:
+    - acer_battery

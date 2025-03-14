@@ -1,0 +1,52 @@
+---
+- name: Install required packages
+  apt:
+    name:
+      - build-essential
+      - git
+      - "linux-headers-{{ ansible_kernel }}"
+    state: present
+    update_cache: yes
+
+- name: Clone acer-wmi-battery repository
+  git:
+    repo: https://github.com/frederik-h/acer-wmi-battery.git
+    dest: /usr/src/acer-wmi-battery
+    version: master
+
+- name: Build kernel module
+  command:
+    cmd: make
+    chdir: /usr/src/acer-wmi-battery
+  register: build_result
+  changed_when: build_result.rc == 0
+
+- name: Install DKMS configuration
+  template:
+    src: dkms.conf.j2
+    dest: /usr/src/acer-wmi-battery/dkms.conf
+    mode: '0644'
+
+- name: Register with DKMS
+  command:
+    cmd: dkms add -m acer-wmi-battery -v {{ acer_battery_version }}
+    chdir: /usr/src/acer-wmi-battery
+  args:
+    creates: /var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/source
+
+- name: Build and install with DKMS
+  command:
+    cmd: dkms install -m acer-wmi-battery -v {{ acer_battery_version }}
+  args:
+    creates: /var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/{{ ansible_kernel }}/x86_64/module/acer-wmi-battery.ko
+
+- name: Load module
+  modprobe:
+    name: acer-wmi-battery
+    state: present
+
+- name: Ensure module loads at boot
+  lineinfile:
+    path: /etc/modules
+    line: acer-wmi-battery
+    create: yes
