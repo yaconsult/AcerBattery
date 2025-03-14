@@ -1,26 +1,10 @@
 ---
-- name: Install required packages (Debian/Ubuntu)
-  apt:
-    name:
-      - build-essential
-      - git
-      - "linux-headers-{{ ansible_kernel }}"
-      - dkms
+- name: Install required packages
+  package:
+    name: "{{ item }}"
     state: present
     update_cache: yes
-  when: ansible_os_family == "Debian"
-
-- name: Install required packages (RedHat/Fedora)
-  dnf:
-    name:
-      - gcc
-      - make
-      - git
-      - "kernel-devel-{{ ansible_kernel }}"
-      - dkms
-    state: present
-    update_cache: yes
-  when: ansible_os_family == "RedHat"
+  loop: "{{ packages[ansible_os_family] }}"
 
 - name: Clone acer-wmi-battery repository
   git:
