@@ -1,0 +1,10 @@
+---
+- name: Test acer-wmi-battery role
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    acer_battery_version: "1.0"
+    acer_battery_repo_url: "{{ lookup('env', 'MOCK_REPO_PATH') }}"
+  roles:
+    - role: ../roles/acer_battery

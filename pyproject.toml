@@ -39,19 +39,14 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--verbose --cov=. --cov-report=term-missing --mypy --black"
+addopts = "--verbose --mypy --black"
 
 [tool.coverage.run]
-source = ["."]
 branch = true
-parallel = true
+parallel = false
 data_file = ".coverage"
-
-[tool.coverage.paths]
-source = [
-    ".",
-    ".venv/lib/python*/site-packages"
-]
+source = ["roles/acer_battery"]
+omit = ["tests/*"]
 
 [tool.coverage.report]
 exclude_lines = [

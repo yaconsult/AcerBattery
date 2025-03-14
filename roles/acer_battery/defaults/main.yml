@@ -1,29 +1,33 @@
 ---
-acer_battery_version: "1.0"
-
 # Package mappings for different distributions
 packages:
   Debian:
+    - git
+    - dkms
+    - linux-headers-{{ ansible_kernel }}
     - build-essential
-    - git
-    - "linux-headers-{{ ansible_kernel }}"
-    - dkms
   RedHat:
+    - git
+    - dkms
+    - kernel-headers
+    - kernel-devel
     - gcc
     - make
-    - git
-    - kernel-headers
-    - "kernel-devel-{{ ansible_kernel }}"
-    - dkms
   Suse:
+    - git
+    - dkms
+    - linux-headers
+    - kernel-devel
     - gcc
     - make
-    - git
-    - kernel-headers
-    - "kernel-devel-{{ ansible_kernel }}"
-    - dkms
   Archlinux:
-    - base-devel
     - git
-    - "linux-headers"
     - dkms
+    - linux-headers
+    - base-devel
+
+# Version of the acer-wmi-battery module to install
+acer_battery_version: "1.0"
+
+# URL of the acer-wmi-battery repository
+acer_battery_repo_url: "https://github.com/frederik-h/acer-wmi-battery.git"
