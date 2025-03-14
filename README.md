@@ -26,7 +26,7 @@ cd AcerBattery
 uv venv
 source .venv/bin/activate
 
-# Install dependencies
+# Install dependencies with uv
 uv pip install -r requirements.txt
 ```
 
@@ -73,25 +73,42 @@ echo 1 > /sys/devices/platform/acer-wmi-battery/calibration_mode
 
 ## Development
 
-This project follows Python best practices and uses several tools to maintain code quality:
+This project uses `uv` for Python package management and follows Python best practices. Development setup:
 
 ```bash
-# Activate virtual environment
+# Create and activate virtual environment using uv
+uv venv
 source .venv/bin/activate
 
-# Format code
+# Install dependencies with uv
+uv pip install -r requirements.txt
+
+# Install project in development mode
+uv pip install -e .
+
+# Format code with black (auto-installed by uv)
 black .
 
-# Run linters and type checking
-flake8 .
+# Run type checking with mypy
 mypy .
 
-# Run security checks
+# Run security checks with bandit
 bandit -r .
 
-# Run tests with coverage
-pytest --cov
+# Run tests with pytest and coverage
+pytest
 ```
+
+The project uses several tools for quality assurance, all managed by `uv`:
+
+- `black`: Code formatting
+- `mypy`: Static type checking
+- `flake8`: Style guide enforcement
+- `pytest`: Testing framework
+- `pytest-cov`: Test coverage reporting
+- `bandit`: Security testing
+
+Configuration for these tools is managed in `pyproject.toml`.
 
 ## Distribution Support
 
