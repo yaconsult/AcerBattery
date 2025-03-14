@@ -1,0 +1,37 @@
+namespace: yaconsult
+name: acer_battery
+version: 1.0.0
+readme: README.md
+
+authors:
+  - YAConsult
+
+description: Ansible role for managing Acer WMI Battery module
+
+license:
+  - MIT
+
+tags:
+  - acer
+  - battery
+  - dkms
+  - kernel
+  - module
+
+dependencies: {}
+
+repository: https://github.com/yaconsult/ansible-role-acer-battery
+
+documentation: https://github.com/yaconsult/ansible-role-acer-battery/blob/main/README.md
+
+homepage: https://github.com/yaconsult/ansible-role-acer-battery
+
+issues: https://github.com/yaconsult/ansible-role-acer-battery/issues
+
+build_ignore:
+  - .venv
+  - .pytest_cache
+  - .coverage
+  - .mypy_cache
+  - __pycache__
+  - tests/
