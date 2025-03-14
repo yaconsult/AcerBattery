@@ -1,6 +1,15 @@
 # Acer WMI Battery Ansible Role
 
-This Ansible role installs and configures the Acer WMI Battery kernel module for Acer laptops. The module enables battery threshold control on supported Acer laptops.
+This Ansible role installs and configures the [Acer WMI Battery kernel module](https://github.com/frederik-h/acer-wmi-battery) for Acer laptops. The module enables battery threshold control on supported Acer laptops.
+
+## About the Module
+
+This role installs and configures the [acer-wmi-battery](https://github.com/frederik-h/acer-wmi-battery) kernel module, created by [Frederik Himpe](https://github.com/frederik-h). The module provides battery health control features for Acer laptops:
+
+- **Health Mode**: Limits battery charging to 80% to preserve long-term battery capacity
+- **Calibration Mode**: Enables battery capacity calibration for accurate capacity estimates
+
+This Ansible role focuses solely on automating the installation and configuration of the upstream module. For module-specific issues or feature requests, please refer to the [upstream repository](https://github.com/frederik-h/acer-wmi-battery).
 
 ## Features
 
@@ -10,6 +19,23 @@ This Ansible role installs and configures the Acer WMI Battery kernel module for
 - Module autoloading configuration
 - Comprehensive test suite
 - Full idempotency support
+
+## Battery Health Features
+
+After installation, you can control the battery features through sysfs:
+
+```bash
+# Enable health mode (limit charging to 80%)
+echo 1 > /sys/devices/platform/acer-wmi-battery/health_mode
+
+# Disable health mode (allow full charging)
+echo 0 > /sys/devices/platform/acer-wmi-battery/health_mode
+
+# Start battery calibration
+echo 1 > /sys/devices/platform/acer-wmi-battery/calibration_mode
+```
+
+The health mode is particularly useful for laptops that are frequently plugged in, as limiting the maximum charge to 80% can significantly extend the battery's lifespan.
 
 ## Requirements
 
