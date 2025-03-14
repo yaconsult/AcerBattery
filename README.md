@@ -16,7 +16,7 @@ This Ansible role automates the installation and maintenance of the [Acer WMI Ba
 
 1. Clone the repository:
 ```bash
-git clone git@github.com:REDACTED/AcerBattery.git
+git clone git@github.com:yaconsult/AcerBattery.git
 cd AcerBattery
 ```
 
