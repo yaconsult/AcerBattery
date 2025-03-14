@@ -1,12 +1,26 @@
 ---
-- name: Install required packages
+- name: Install required packages (Debian/Ubuntu)
   apt:
     name:
       - build-essential
       - git
       - "linux-headers-{{ ansible_kernel }}"
+      - dkms
     state: present
     update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install required packages (RedHat/Fedora)
+  dnf:
+    name:
+      - gcc
+      - make
+      - git
+      - "kernel-devel-{{ ansible_kernel }}"
+      - dkms
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
 
 - name: Clone acer-wmi-battery repository
   git:
@@ -38,7 +52,7 @@
   command:
     cmd: dkms install -m acer-wmi-battery -v {{ acer_battery_version }}
   args:
-    creates: /var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/{{ ansible_kernel }}/x86_64/module/acer-wmi-battery.ko
+    creates: /var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/{{ ansible_kernel }}/{{ ansible_architecture }}/module/acer-wmi-battery.ko
 
 - name: Load module
   modprobe:
@@ -47,6 +61,6 @@
 
 - name: Ensure module loads at boot
   lineinfile:
-    path: /etc/modules
+    path: /etc/modules-load.d/acer-wmi-battery.conf
     line: acer-wmi-battery
     create: yes

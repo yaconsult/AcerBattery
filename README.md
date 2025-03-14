@@ -4,48 +4,130 @@ This Ansible role automates the installation and maintenance of the [Acer WMI Ba
 - Health mode that limits battery charge to 80% to preserve battery capacity
 - Battery calibration mode for accurate capacity estimates
 
-## Requirements
+## Prerequisites
 
-- Ansible 2.9 or higher
-- Debian/Ubuntu-based system
+- Linux system (Debian/Ubuntu or RedHat/Fedora)
+- Python 3.x
+- `uv` package manager
 - Root/sudo access
+- Git with SSH configured
 
 ## Installation
 
-1. Add your target hosts to your Ansible inventory
-2. Include the role in your playbook:
-
-```yaml
-- hosts: your_hosts
-  roles:
-    - acer_battery
+1. Clone the repository:
+```bash
+git clone git@github.com:REDACTED/AcerBattery.git
+cd AcerBattery
 ```
+
+2. Set up the Python environment:
+```bash
+# Create and activate virtual environment using uv
+uv venv
+source .venv/bin/activate
+
+# Install dependencies
+uv pip install -r requirements.txt
+```
+
+3. Install system dependencies (requires sudo):
+```bash
+# For Debian/Ubuntu systems
+sudo apt-get update
+sudo apt-get install -y python3-apt dkms
+
+# For RedHat/Fedora systems
+sudo dnf update
+sudo dnf install -y python3-dnf dkms
+```
+
+4. Configure your inventory:
+   - For local installation, use the provided `inventory` file
+   - For remote hosts, modify the inventory file with your target hosts:
+     ```ini
+     [acer_laptops]
+     laptop1 ansible_host=192.168.1.100
+     laptop2 ansible_host=192.168.1.101
+     ```
 
 ## Usage
 
-Run the playbook:
-
+1. Run the playbook:
 ```bash
+# Check mode (dry-run)
+ansible-playbook -i inventory site.yml --check
+
+# Actual installation
 ansible-playbook -i inventory site.yml
 ```
 
-The role will:
-1. Install required dependencies
-2. Clone and build the module
-3. Set up DKMS for automatic rebuilding with kernel updates
-4. Load the module and configure it to load at boot
-
-## Configuration
-
-Default variables in `roles/acer_battery/defaults/main.yml`:
-- `acer_battery_version`: Module version (default: "1.0")
-
-## Testing
-
-Test the installation by checking the module status:
+2. Verify the installation:
 ```bash
+# Check if module is loaded
 lsmod | grep acer_wmi_battery
+
+# Check DKMS status
+dkms status | grep acer-wmi-battery
 ```
+
+3. Control battery features:
+```bash
+# Enable health mode (limit to 80% charge)
+echo 1 > /sys/devices/platform/acer-wmi-battery/health_mode
+
+# Disable health mode
+echo 0 > /sys/devices/platform/acer-wmi-battery/health_mode
+
+# Start battery calibration
+echo 1 > /sys/devices/platform/acer-wmi-battery/calibration_mode
+```
+
+## Development
+
+This project follows Python best practices and uses several tools to maintain code quality:
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Format code
+black .
+
+# Run linters and type checking
+flake8 .
+mypy .
+
+# Run security checks
+bandit -r .
+
+# Run tests with coverage
+pytest --cov
+```
+
+## Troubleshooting
+
+1. If the module fails to load:
+   ```bash
+   # Check kernel logs
+   dmesg | grep acer-wmi-battery
+   
+   # Rebuild module
+   dkms rebuild -m acer-wmi-battery -v 1.0
+   ```
+
+2. If the playbook fails:
+   - For Debian/Ubuntu: Ensure python3-apt is installed
+   - For RedHat/Fedora: Ensure python3-dnf is installed
+   - Check Ansible connection settings
+   - Verify sudo/root access
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linters
+5. Submit a pull request
 
 ## License
 
