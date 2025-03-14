@@ -5,6 +5,7 @@ import pytest
 from ansible.parsing.dataloader import DataLoader
 from ansible.inventory.manager import InventoryManager
 from ansible.inventory.host import Host
+import yaml
 
 
 def test_inventory_file() -> None:
@@ -22,21 +23,47 @@ def test_inventory_file() -> None:
     assert connection == "local"
 
 
-@pytest.mark.parametrize(
-    "os_family,package_manager,display_name",
-    [
-        ("Debian", "apt", "Debian/Ubuntu"),
-        ("RedHat", "dnf", "RedHat/Fedora"),
-    ],
-)
-def test_package_installation_tasks(
-    os_family: str, package_manager: str, display_name: str
-) -> None:
-    """Test that package installation tasks are correct for different distributions."""
-    with open("roles/acer_battery/tasks/main.yml", "r") as f:
-        tasks_content = f.read()
+def test_package_definitions() -> None:
+    """Test that package definitions are correct for all supported distributions."""
+    with open("roles/acer_battery/defaults/main.yml", "r") as f:
+        defaults = yaml.safe_load(f)
 
-    # Verify distribution-specific package installation
-    assert f"name: Install required packages ({display_name})" in tasks_content
-    assert f"{package_manager}:" in tasks_content
-    assert f'when: ansible_os_family == "{os_family}"' in tasks_content
+    assert "packages" in defaults, "Should define package mappings"
+    packages = defaults["packages"]
+
+    # Test required distributions are present
+    required_distros = {"Debian", "RedHat", "Suse", "Archlinux"}
+    assert (
+        set(packages.keys()) >= required_distros
+    ), "Should support all required distributions"
+
+    # Test common required packages
+    for distro, pkg_list in packages.items():
+        assert "git" in pkg_list, f"{distro} should include git"
+        assert "dkms" in pkg_list, f"{distro} should include dkms"
+        assert any(
+            "header" in pkg.lower() for pkg in pkg_list
+        ), f"{distro} should include kernel headers"
+
+
+def test_package_installation_task() -> None:
+    """Test that package installation task is distribution-agnostic."""
+    with open("roles/acer_battery/tasks/main.yml", "r") as f:
+        tasks = yaml.safe_load(f)
+
+    # Find package installation task
+    pkg_tasks = [
+        task
+        for task in tasks
+        if isinstance(task, dict) and task.get("name") == "Install required packages"
+    ]
+    assert len(pkg_tasks) == 1, "Should have exactly one package installation task"
+
+    pkg_task = pkg_tasks[0]
+    assert pkg_task["package"]["state"] == "present", "Should install packages"
+    assert "{{ item }}" in str(
+        pkg_task["package"]["name"]
+    ), "Should use item variable for package names"
+    assert "{{ packages[ansible_os_family] }}" in str(
+        pkg_task["loop"]
+    ), "Should loop over distribution-specific packages"

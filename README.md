@@ -6,7 +6,7 @@ This Ansible role automates the installation and maintenance of the [Acer WMI Ba
 
 ## Prerequisites
 
-- Linux system (Debian/Ubuntu or RedHat/Fedora)
+- Linux system (Supported distributions: Debian/Ubuntu, RedHat/Fedora, SUSE, Arch Linux)
 - Python 3.x
 - `uv` package manager
 - Root/sudo access
@@ -30,18 +30,7 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
-3. Install system dependencies (requires sudo):
-```bash
-# For Debian/Ubuntu systems
-sudo apt-get update
-sudo apt-get install -y python3-apt dkms
-
-# For RedHat/Fedora systems
-sudo dnf update
-sudo dnf install -y python3-dnf dkms
-```
-
-4. Configure your inventory:
+3. Configure your inventory:
    - For local installation, use the provided `inventory` file
    - For remote hosts, modify the inventory file with your target hosts:
      ```ini
@@ -104,6 +93,17 @@ bandit -r .
 pytest --cov
 ```
 
+## Distribution Support
+
+The role automatically detects your Linux distribution and installs the appropriate packages. Currently supported distributions:
+
+- Debian/Ubuntu: Uses `build-essential` and `linux-headers-*`
+- RedHat/Fedora: Uses `gcc`, `make`, and `kernel-*` packages
+- SUSE: Uses `gcc`, `make`, and `kernel-*` packages
+- Arch Linux: Uses `base-devel` and `linux-headers`
+
+To add support for additional distributions, modify the package mappings in `roles/acer_battery/defaults/main.yml`.
+
 ## Troubleshooting
 
 1. If the module fails to load:
@@ -116,10 +116,9 @@ pytest --cov
    ```
 
 2. If the playbook fails:
-   - For Debian/Ubuntu: Ensure python3-apt is installed
-   - For RedHat/Fedora: Ensure python3-dnf is installed
-   - Check Ansible connection settings
+   - Check that your distribution is supported
    - Verify sudo/root access
+   - Check system logs for detailed error messages
 
 ## Contributing
 

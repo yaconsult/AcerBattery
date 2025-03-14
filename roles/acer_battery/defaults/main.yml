@@ -1,2 +1,29 @@
 ---
 acer_battery_version: "1.0"
+
+# Package mappings for different distributions
+packages:
+  Debian:
+    - build-essential
+    - git
+    - "linux-headers-{{ ansible_kernel }}"
+    - dkms
+  RedHat:
+    - gcc
+    - make
+    - git
+    - kernel-headers
+    - "kernel-devel-{{ ansible_kernel }}"
+    - dkms
+  Suse:
+    - gcc
+    - make
+    - git
+    - kernel-headers
+    - "kernel-devel-{{ ansible_kernel }}"
+    - dkms
+  Archlinux:
+    - base-devel
+    - git
+    - "linux-headers"
+    - dkms
