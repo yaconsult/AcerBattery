@@ -38,6 +38,26 @@
   check_mode: no
   changed_when: git_update.before != git_update.after
 
+- name: Create proper Makefile for kernel module
+  copy:
+    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/Makefile"
+    content: |
+      obj-m += acer-wmi-battery.o
+
+      KVERSION := $(shell uname -r)
+      KDIR := /lib/modules/$(KVERSION)/build
+
+      all:
+      	$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+      clean:
+      	$(MAKE) -C $(KDIR) M=$(PWD) clean
+
+      install:
+      	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
+    mode: '0644'
+  register: makefile_update
+
 - name: Install DKMS configuration
   template:
     src: dkms.conf.j2
