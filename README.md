@@ -49,6 +49,24 @@ The health mode is particularly useful for laptops that are frequently plugged i
 - Git
 - DKMS
 
+## Secure Boot Considerations
+
+If you have Secure Boot enabled (common on modern systems), you'll need to either:
+
+1. **Disable Secure Boot** (Easiest option):
+   - Enter BIOS/UEFI settings during boot
+   - Find the Secure Boot option (usually under Security or Boot)
+   - Disable it
+   - Save and reboot
+
+2. **Sign the module** (Advanced option):
+   - Generate a Machine Owner Key (MOK)
+   - Sign the module with the key
+   - Enroll the key in your system
+   - Detailed instructions vary by distribution
+
+The role will detect if the module fails to load due to Secure Boot and provide appropriate guidance.
+
 ## Installation
 
 1. Clone this repository:
@@ -111,6 +129,30 @@ The role checks for updates from the upstream repository during each playbook ru
 You can manually trigger an update by running the playbook again:
 ```bash
 ansible-playbook -i inventory site.yml
+```
+
+## Troubleshooting
+
+If the health mode interface is not available after installation:
+
+1. Check if the module is loaded:
+```bash
+lsmod | grep acer_wmi_battery
+```
+
+2. Check kernel logs for any errors:
+```bash
+dmesg | grep -i acer
+```
+
+3. If you see module verification errors:
+- Follow the Secure Boot instructions above
+- Or temporarily disable Secure Boot for testing
+
+4. After making changes:
+```bash
+sudo modprobe -r acer_wmi_battery  # Unload the module
+sudo modprobe acer_wmi_battery     # Load it again
 ```
 
 ## Development

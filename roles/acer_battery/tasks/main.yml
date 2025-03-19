@@ -1,18 +1,18 @@
 ---
 - name: Install required packages
-  package:
+  ansible.builtin.package:
     name: "{{ item }}"
     state: present
   loop: "{{ packages[ansible_os_family] }}"
   become: true
 
 - name: Check if acer-wmi-battery directory exists
-  stat:
+  ansible.builtin.stat:
     path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
   register: module_dir
 
 - name: Clone acer-wmi-battery repository
-  git:
+  ansible.builtin.git:
     repo: "{{ acer_battery_repo_url }}"
     dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
     version: "master"
@@ -26,7 +26,7 @@
   changed_when: not module_dir.stat.exists
 
 - name: Update acer-wmi-battery repository
-  git:
+  ansible.builtin.git:
     repo: "{{ acer_battery_repo_url }}"
     dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
     version: "master"
@@ -39,7 +39,7 @@
   changed_when: git_update.before != git_update.after
 
 - name: Create proper Makefile for kernel module
-  copy:
+  ansible.builtin.copy:
     dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/Makefile"
     content: |
       obj-m += acer-wmi-battery.o
@@ -59,36 +59,79 @@
   register: makefile_update
 
 - name: Install DKMS configuration
-  template:
+  ansible.builtin.template:
     src: dkms.conf.j2
     dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/dkms.conf"
     mode: '0644'
+  register: dkms_config
   notify: rebuild_module
   become: true
   check_mode: no
 
 - name: Register with DKMS
-  command:
+  ansible.builtin.command:
     cmd: "dkms add -m acer-wmi-battery -v {{ acer_battery_version }}"
-  args:
-    creates: "/var/lib/dkms/acer-wmi-battery/{{ acer_battery_version }}/source"
-  notify: rebuild_module
+  register: dkms_add
+  changed_when: dkms_add.rc == 0
+  failed_when: dkms_add.rc != 0 and 'already exists' not in dkms_add.stderr
   become: true
   check_mode: no
-  changed_when: false
 
 - name: Build and install with DKMS
-  command:
+  ansible.builtin.command:
     cmd: "dkms install -m acer-wmi-battery -v {{ acer_battery_version }}"
-  args:
-    creates: "/lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko"
+  register: dkms_install
+  changed_when: dkms_install.rc == 0
+  failed_when: dkms_install.rc != 0 and 'already installed' not in dkms_install.stderr
   notify: load_module
   become: true
   check_mode: no
+
+- name: Check if module is loaded
+  ansible.builtin.command:
+    cmd: lsmod | grep -q acer_wmi_battery
+  register: module_loaded
   changed_when: false
+  failed_when: false
+
+- name: Load module if not loaded
+  ansible.builtin.command:
+    cmd: modprobe acer_wmi_battery
+  when: module_loaded.rc != 0
+  register: modprobe_result
+  changed_when: modprobe_result.rc == 0
+  become: true
+  check_mode: no
+
+- name: Wait for sysfs interface
+  ansible.builtin.wait_for:
+    path: /sys/devices/platform/acer-wmi-battery/health_mode
+    timeout: 10
+  register: sysfs_wait
+  ignore_errors: true
+
+- name: Show module status
+  ansible.builtin.debug:
+    msg: |
+      Module Status:
+      {% if module_loaded.rc == 0 %}
+      - Module is loaded
+      {% else %}
+      - Module is not loaded
+      {% endif %}
+      {% if sysfs_wait is success %}
+      - Health mode interface is available
+      {% else %}
+      - Health mode interface is not available
+      {% endif %}
+      
+      If the health mode interface is not available, you may need to:
+      1. Disable Secure Boot in BIOS
+      2. Or sign the module with a Machine Owner Key (MOK)
+      3. Or reboot the system if this is a fresh installation
 
 - name: Configure module autoload
-  copy:
+  ansible.builtin.copy:
     content: "acer-wmi-battery"
     dest: /etc/modules-load.d/acer-wmi-battery.conf
     mode: '0644'
@@ -97,7 +140,7 @@
   check_mode: no
 
 - name: Load module
-  modprobe:
+  ansible.builtin.modprobe:
     name: acer-wmi-battery
     state: present
   become: true
@@ -105,7 +148,7 @@
   changed_when: false
 
 - name: Ensure module loads at boot
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/modules
     line: acer-wmi-battery
     create: yes
