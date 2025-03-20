@@ -51,21 +51,22 @@ The health mode is particularly useful for laptops that are frequently plugged i
 
 ## Secure Boot Considerations
 
-If you have Secure Boot enabled (common on modern systems), you'll need to either:
+The role now includes automatic module signing support. When installing the module:
 
-1. **Disable Secure Boot** (Easiest option):
-   - Enter BIOS/UEFI settings during boot
-   - Find the Secure Boot option (usually under Security or Boot)
-   - Disable it
-   - Save and reboot
+1. If you have Secure Boot enabled (common on modern systems):
+   - The role will automatically sign the module using DKMS's MOK (Machine Owner Key)
+   - You'll need to enroll the MOK key on first installation:
+     ```bash
+     sudo mokutil --import /var/lib/dkms/mok.pub
+     ```
+   - Reboot and follow the MOK management prompts to enroll the key
+   - After enrollment, the module will load automatically with Secure Boot enabled
 
-2. **Sign the module** (Advanced option):
-   - Generate a Machine Owner Key (MOK)
-   - Sign the module with the key
-   - Enroll the key in your system
-   - Detailed instructions vary by distribution
+2. If you prefer not to use module signing:
+   - Disable Secure Boot in your BIOS/UEFI settings
+   - The module will load without requiring key enrollment
 
-The role will detect if the module fails to load due to Secure Boot and provide appropriate guidance.
+The role automatically detects your system's configuration and handles module signing appropriately.
 
 ## Installation
 
@@ -164,6 +165,7 @@ This project follows strict Python best practices:
 - Security scanning with `bandit`
 - Test coverage with `pytest-cov`
 - Comprehensive test suite
+- Automated module signing for Secure Boot compatibility
 
 ### Setting up the Development Environment
 
@@ -176,6 +178,15 @@ source .venv/bin/activate
 2. Install development dependencies:
 ```bash
 uv pip install -r requirements-dev.txt
+```
+
+3. Set up module signing (optional):
+```bash
+# Generate a new MOK key pair if needed
+sudo dkms mok -g
+
+# Import the public key
+sudo mokutil --import /var/lib/dkms/mok.pub
 ```
 
 ### Running Tests
@@ -195,6 +206,9 @@ pytest tests/test_role.py::test_role_idempotency
 
 # DKMS configuration tests
 pytest tests/test_dkms_config.py
+
+# Module signing tests
+pytest tests/test_module_signing.py
 ```
 
 ### Code Quality
