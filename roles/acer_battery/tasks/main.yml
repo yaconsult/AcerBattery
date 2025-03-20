@@ -6,6 +6,21 @@
   loop: "{{ packages[ansible_os_family] }}"
   become: true
 
+- name: Check if MOK keys exist
+  ansible.builtin.stat:
+    path: "{{ acer_battery_mok_private_key }}"
+  register: mok_key
+  when: acer_battery_enable_signing
+
+- name: Generate MOK keys if they don't exist
+  ansible.builtin.command:
+    cmd: dkms mok -g
+  when: 
+    - acer_battery_enable_signing
+    - acer_battery_generate_mok
+    - not mok_key.stat.exists
+  become: true
+
 - name: Check if acer-wmi-battery directory exists
   ansible.builtin.stat:
     path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
@@ -53,6 +68,7 @@
     mode: '0755'
   become: true
   notify: rebuild_module
+  when: acer_battery_enable_signing
 
 - name: Create proper Makefile for kernel module
   ansible.builtin.copy:
@@ -131,3 +147,18 @@
 - name: Show module status
   ansible.builtin.debug:
     msg: "Module loaded successfully. Health mode interface is {% if sysfs_wait.failed %}not {% endif %}available."
+
+- name: Show MOK enrollment instructions
+  ansible.builtin.debug:
+    msg: |
+      Module signing is enabled. To complete the setup:
+      1. Run: sudo mokutil --import {{ acer_battery_mok_public_key }}
+      2. Create a one-time password when prompted
+      3. Reboot your system
+      4. During boot, select "Enroll MOK" and follow the prompts
+      5. Enter the password you created
+      6. Select "Yes" to enroll the key
+      7. Select "Reboot"
+  when: 
+    - acer_battery_enable_signing
+    - mok_key is changed
