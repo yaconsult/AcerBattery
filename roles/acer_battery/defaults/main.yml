@@ -6,6 +6,7 @@ packages:
     - dkms
     - linux-headers-{{ ansible_kernel }}
     - build-essential
+    - mokutil
   RedHat:
     - git
     - dkms
@@ -13,6 +14,7 @@ packages:
     - kernel-devel
     - gcc
     - make
+    - mokutil
   Suse:
     - git
     - dkms
@@ -20,11 +22,13 @@ packages:
     - kernel-devel
     - gcc
     - make
+    - mokutil
   Archlinux:
     - git
     - dkms
     - linux-headers
     - base-devel
+    - mokutil
 
 # Version of the acer-wmi-battery module to install
 # This should match the upstream repository's version
@@ -37,3 +41,15 @@ acer_battery_version: "1.0"
 # - Health mode: Limits charging to 80% to preserve battery life
 # - Calibration mode: Enables battery capacity calibration
 acer_battery_repo_url: "https://github.com/frederik-h/acer-wmi-battery.git"
+
+# Module signing configuration
+# Whether to automatically generate and use MOK keys for module signing
+acer_battery_enable_signing: true
+
+# Whether to automatically generate MOK keys if they don't exist
+# Only used if acer_battery_enable_signing is true
+acer_battery_generate_mok: true
+
+# Path to MOK key files
+acer_battery_mok_private_key: "/var/lib/dkms/mok.key"
+acer_battery_mok_public_key: "/var/lib/dkms/mok.pub"
