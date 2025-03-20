@@ -1,6 +1,9 @@
 #!/bin/bash
 
-for module in $(pwd)/*.ko; do
-    echo "Signing $module"
-    /usr/src/kernels/$1/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub "$module"
+shopt -s nullglob
+for module in *.ko; do
+    if [ -f "$module" ]; then
+        echo "Signing $module"
+        /usr/src/kernels/$1/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub "$module"
+    fi
 done
