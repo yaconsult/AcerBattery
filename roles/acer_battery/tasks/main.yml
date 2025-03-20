@@ -31,23 +31,41 @@
     dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
     version: "master"
     update: yes
+    force: yes
   register: git_update
   when: module_dir.stat.exists
   notify: rebuild_module
   become: true
   check_mode: no
-  changed_when: git_update.before != git_update.after
+  changed_when: false
+
+- name: Create scripts directory
+  ansible.builtin.file:
+    path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/scripts"
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Install module signing script
+  ansible.builtin.template:
+    src: scripts/sign-modules.sh.j2
+    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/scripts/sign-modules.sh"
+    mode: '0755'
+  become: true
+  notify: rebuild_module
 
 - name: Create proper Makefile for kernel module
   ansible.builtin.copy:
     dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/Makefile"
     content: |
-      obj-m += acer-wmi-battery.o
+      obj-m := acer-wmi-battery.o
 
       KVERSION := $(shell uname -r)
       KDIR := /lib/modules/$(KVERSION)/build
 
-      all:
+      PWD := $(shell pwd)
+
+      default:
       	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
       clean:
@@ -55,8 +73,10 @@
 
       install:
       	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
+      	depmod -a
     mode: '0644'
   register: makefile_update
+  become: true
 
 - name: Install DKMS configuration
   ansible.builtin.template:
@@ -99,58 +119,15 @@
     cmd: modprobe acer_wmi_battery
   when: module_loaded.rc != 0
   register: modprobe_result
-  changed_when: modprobe_result.rc == 0
   become: true
-  check_mode: no
 
 - name: Wait for sysfs interface
   ansible.builtin.wait_for:
-    path: /sys/devices/platform/acer-wmi-battery/health_mode
+    path: /sys/bus/wmi/drivers/acer-wmi-battery/health_mode
     timeout: 10
   register: sysfs_wait
   ignore_errors: true
 
 - name: Show module status
   ansible.builtin.debug:
-    msg: |
-      Module Status:
-      {% if module_loaded.rc == 0 %}
-      - Module is loaded
-      {% else %}
-      - Module is not loaded
-      {% endif %}
-      {% if sysfs_wait is success %}
-      - Health mode interface is available
-      {% else %}
-      - Health mode interface is not available
-      {% endif %}
-      
-      If the health mode interface is not available, you may need to:
-      1. Disable Secure Boot in BIOS
-      2. Or sign the module with a Machine Owner Key (MOK)
-      3. Or reboot the system if this is a fresh installation
-
-- name: Configure module autoload
-  ansible.builtin.copy:
-    content: "acer-wmi-battery"
-    dest: /etc/modules-load.d/acer-wmi-battery.conf
-    mode: '0644'
-  notify: load_module
-  become: true
-  check_mode: no
-
-- name: Load module
-  ansible.builtin.modprobe:
-    name: acer-wmi-battery
-    state: present
-  become: true
-  check_mode: no
-  changed_when: false
-
-- name: Ensure module loads at boot
-  ansible.builtin.lineinfile:
-    path: /etc/modules
-    line: acer-wmi-battery
-    create: yes
-  become: true
-  check_mode: no
+    msg: "Module loaded successfully. Health mode interface is {% if sysfs_wait.failed %}not {% endif %}available."

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for module in $(dirname $0)/../*.ko; do
+    echo "Signing $module"
+    /usr/src/kernels/$1/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub "$module"
+done
