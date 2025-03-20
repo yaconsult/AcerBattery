@@ -57,16 +57,60 @@ The role now includes automatic module signing support. When installing the modu
    - The role will automatically sign the module using DKMS's MOK (Machine Owner Key)
    - You'll need to enroll the MOK key on first installation:
      ```bash
+     # Check if you already have a MOK key
+     ls -l /var/lib/dkms/mok.*
+     
+     # If no key exists, generate one (the role will do this automatically)
+     sudo dkms mok -g
+     
+     # Import the public key into your system
      sudo mokutil --import /var/lib/dkms/mok.pub
+     
+     # You'll be prompted to create a one-time password
+     # Remember this password for the next step!
      ```
-   - Reboot and follow the MOK management prompts to enroll the key
-   - After enrollment, the module will load automatically with Secure Boot enabled
+   - Reboot your system
+   - During boot, you'll see a blue MOK management screen
+   - Select "Enroll MOK"
+   - Select "Continue"
+   - Enter the password you created with mokutil
+   - Select "Yes" to enroll the key
+   - Select "Reboot"
+   - After reboot, the module will load automatically with Secure Boot enabled
 
 2. If you prefer not to use module signing:
    - Disable Secure Boot in your BIOS/UEFI settings
    - The module will load without requiring key enrollment
 
 The role automatically detects your system's configuration and handles module signing appropriately.
+
+### MOK Key Management
+
+The Machine Owner Key (MOK) is used to sign kernel modules for Secure Boot. Here are some useful MOK management commands:
+
+```bash
+# List enrolled keys
+mokutil --list-enrolled
+
+# Check if a key is enrolled
+mokutil --test-key /var/lib/dkms/mok.pub
+
+# Reset MOK list (removes all enrolled keys - use with caution!)
+mokutil --reset
+
+# Check Secure Boot status
+mokutil --sb-state
+
+# Revoke a MOK key
+mokutil --revoke-import
+```
+
+Important notes about MOK keys:
+- The private key (`/var/lib/dkms/mok.key`) should be kept secure and never shared
+- The public key (`/var/lib/dkms/mok.pub`) is used for verification and can be shared
+- Keys are persistent across kernel updates
+- Multiple keys can be enrolled if needed
+- If you reinstall your system, you'll need to re-enroll the keys
 
 ## Installation
 
