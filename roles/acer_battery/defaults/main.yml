@@ -44,7 +44,7 @@ acer_battery_repo_url: "https://github.com/frederik-h/acer-wmi-battery.git"
 
 # Module signing configuration
 # Whether to automatically generate and use MOK keys for module signing
-acer_battery_enable_signing: true
+acer_battery_enable_signing: false
 
 # Whether to automatically generate MOK keys if they don't exist
 # Only used if acer_battery_enable_signing is true
@@ -53,3 +53,7 @@ acer_battery_generate_mok: true
 # Path to MOK key files
 acer_battery_mok_private_key: "/var/lib/dkms/mok.key"
 acer_battery_mok_public_key: "/var/lib/dkms/mok.pub"
+
+# Module signing will be automatically enabled if SELinux is enforcing
+acer_battery_force_signing: false  # Set to true to force signing regardless of SELinux status
+acer_battery_force_no_signing: false  # Set to true to force no signing regardless of SELinux status

@@ -112,6 +112,62 @@ Important notes about MOK keys:
 - Multiple keys can be enrolled if needed
 - If you reinstall your system, you'll need to re-enroll the keys
 
+## Debugging
+
+### ACPI Table Dumps
+If you need to analyze ACPI tables for debugging WMI methods:
+
+```bash
+# Install acpica-tools
+sudo dnf install acpica-tools
+
+# Dump ACPI tables
+sudo acpidump > acpi.dump
+
+# Extract individual tables
+acpixtract -a acpi.dump
+
+# Decompile a specific table (e.g., DSDT)
+iasl -d dsdt.dat
+```
+
+Note: ACPI table dumps (*.dat files) are excluded from git to keep the repository clean.
+
+## Recent Changes
+
+### Module Signing Improvements
+- Added automatic module signing based on SELinux status
+- Module will be signed automatically when SELinux is in enforcing mode
+- Added configuration options to force signing on/off:
+  - `acer_battery_force_signing: true` - Always sign the module
+  - `acer_battery_force_no_signing: true` - Never sign the module
+  - Both `false` (default) - Sign based on SELinux status
+
+### Reliability Improvements
+- Added source code integrity checks
+- Implemented automatic backup and recovery
+- Added module functionality verification
+- Added comprehensive error handling for DKMS operations
+
+## Configuration
+
+### Module Signing
+By default, the module will be signed only when SELinux is in enforcing mode. You can override this behavior:
+
+```yaml
+# In your playbook or host_vars:
+acer_battery_force_signing: true    # Always sign
+# or
+acer_battery_force_no_signing: true # Never sign
+```
+
+### Error Recovery
+The role now includes automatic error recovery:
+- Backs up working source code
+- Verifies source code integrity
+- Validates module functionality
+- Automatically restores from backup if needed
+
 ## Installation
 
 1. Clone this repository:
