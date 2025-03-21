@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Check if module is loaded
+if ! lsmod | grep -q acer_wmi_battery; then
+    echo "Module is not loaded"
+    exit 1
+fi
+
+# Check if WMI interface exists
+if [ ! -d "/sys/bus/wmi/drivers/acer-wmi-battery" ]; then
+    echo "WMI interface not found"
+    exit 1
+fi
+
+# Check if health mode control exists
+if [ ! -f "/sys/bus/wmi/drivers/acer-wmi-battery/health_mode" ]; then
+    echo "Health mode control not found"
+    exit 1
+fi
+
+# Try to read health mode status
+health_mode=$(cat /sys/bus/wmi/drivers/acer-wmi-battery/health_mode 2>/dev/null)
+if [ $? -ne 0 ]; then
+    echo "Failed to read health mode status"
+    exit 1
+fi
+
+# Verify health mode value is valid
+if [ "$health_mode" != "0" ] && [ "$health_mode" != "1" ]; then
+    echo "Invalid health mode value: $health_mode"
+    exit 1
+fi
+
+echo "Module verification successful"
+exit 0
