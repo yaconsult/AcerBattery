@@ -172,7 +172,7 @@ The role now includes automatic error recovery:
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/ansible-acer-battery.git
+git clone https://github.com/yaconsult/ansible-acer-battery.git
 cd ansible-acer-battery
 ```
 
