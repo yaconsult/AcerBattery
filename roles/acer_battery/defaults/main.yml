@@ -30,30 +30,21 @@ packages:
     - base-devel
     - mokutil
 
-# Version of the acer-wmi-battery module to install
-# This should match the upstream repository's version
-# See: https://github.com/frederik-h/acer-wmi-battery
-acer_battery_version: "1.0"
+# Version of the module to install
+acer_battery_version: "main"
 
-# URL of the acer-wmi-battery repository
-# Created by Frederik Himpe (https://github.com/frederik-h)
-# This module enables battery health features on Acer laptops:
-# - Health mode: Limits charging to 80% to preserve battery life
-# - Calibration mode: Enables battery capacity calibration
-acer_battery_repo_url: "https://github.com/frederik-h/acer-wmi-battery.git"
+# Repository URL (using SSH for private access)
+acer_battery_repo_url: "git@github.com:frederik-h/acer-wmi-battery.git"
+
+# Source directory
+acer_battery_source_dir: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
 
 # Module signing configuration
-# Whether to automatically generate and use MOK keys for module signing
-acer_battery_enable_signing: false
+acer_battery_force_signing: false
+acer_battery_force_no_signing: false
 
-# Whether to automatically generate MOK keys if they don't exist
-# Only used if acer_battery_enable_signing is true
-acer_battery_generate_mok: true
-
-# Path to MOK key files
-acer_battery_mok_private_key: "/var/lib/dkms/mok.key"
-acer_battery_mok_public_key: "/var/lib/dkms/mok.pub"
-
-# Module signing will be automatically enabled if SELinux is enforcing
-acer_battery_force_signing: false  # Set to true to force signing regardless of SELinux status
-acer_battery_force_no_signing: false  # Set to true to force no signing regardless of SELinux status
+# MOK configuration
+acer_battery_mok_password: "password"
+acer_battery_mok_dir: "/var/lib/dkms"
+acer_battery_mok_key: "{{ acer_battery_mok_dir }}/mok.key"
+acer_battery_mok_pub: "{{ acer_battery_mok_dir }}/mok.pub"
