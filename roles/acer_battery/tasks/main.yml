@@ -28,20 +28,27 @@
   changed_when: false
   failed_when: false
 
-- name: Set signing fact based on SELinux status
-  ansible.builtin.set_fact:
-    acer_battery_enable_signing: >-
-      {{
-        acer_battery_force_signing or
-        (
-          not acer_battery_force_no_signing and
-          selinux_status.stdout == 'Enforcing'
-        )
-      }}
+- name: Check Secure Boot status
+  ansible.builtin.command:
+    cmd: mokutil --sb-state
+  register: secureboot_status
+  changed_when: false
+  ignore_errors: true
 
-- name: Show module signing status
+- name: Set signing required fact
+  ansible.builtin.set_fact:
+    signing_required: "{{ acer_battery_force_signing | default(false) or 
+                        (not acer_battery_force_no_signing | default(false) and
+                         (selinux_status.stdout == 'Enforcing' or 
+                          'SecureBoot enabled' in secureboot_status.stdout)) }}"
+
+- name: Debug signing status
   ansible.builtin.debug:
-    msg: "Module signing is {{ 'enabled' if acer_battery_enable_signing else 'disabled' }} (SELinux: {{ selinux_status.stdout }})"
+    msg: "Module signing is {{ 'required' if signing_required else 'not required' }} (SELinux: {{ selinux_status.stdout }}, Secure Boot: {{ 'enabled' if 'SecureBoot enabled' in secureboot_status.stdout else 'disabled' }})"
+
+- name: Generate MOK key pair
+  ansible.builtin.include_tasks: generate-mok-keys.yml
+  when: signing_required
 
 - name: Check if acer-wmi-battery directory exists
   ansible.builtin.stat:
@@ -90,7 +97,7 @@
     mode: '0755'
   become: true
   notify: rebuild_module
-  when: acer_battery_enable_signing
+  when: signing_required
 
 - name: Install module verification script
   ansible.builtin.template:
@@ -235,5 +242,5 @@
       6. Select "Yes" to enroll the key
       7. Select "Reboot"
   when: 
-    - acer_battery_enable_signing
+    - signing_required
     - mok_key is changed
