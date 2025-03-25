@@ -1,11 +1,11 @@
-PACKAGE_NAME="{{ acer_battery_module_name }}"
+PACKAGE_NAME="acer-wmi-battery"
 PACKAGE_VERSION="{{ acer_battery_version }}"
 BUILT_MODULE_NAME[0]="acer-wmi-battery"
-DEST_MODULE_LOCATION[0]="/extra/"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/platform/x86"
 AUTOINSTALL="yes"
-{% if acer_battery_enable_signing %}
-POST_BUILD="scripts/sign-modules.sh \$kernelver"
-SIGN_ONLY="yes"
+REMAKE_INITRD="yes"
+{% if signing_required %}
+POST_BUILD="./sign-modules.sh ${kernelver}"
 {% endif %}
 MAKE[0]="make"
 CLEAN="make clean"

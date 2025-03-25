@@ -112,6 +112,27 @@ Important notes about MOK keys:
 - Multiple keys can be enrolled if needed
 - If you reinstall your system, you'll need to re-enroll the keys
 
+## Module Signing
+
+The module will be automatically signed if either:
+1. SELinux is in enforcing mode
+2. Secure Boot is enabled
+
+You can override this behavior with:
+- `acer_battery_force_signing: true` to always sign the module
+- `acer_battery_force_no_signing: true` to never sign the module
+
+If signing is required, you'll need to:
+1. Reboot after installation
+2. During boot, you'll be prompted to enroll the MOK key
+3. Select "Enroll MOK"
+4. Select "Continue"
+5. Enter the password (default: `password`)
+6. Select "Yes" to enroll the key
+7. Select "Reboot"
+
+Note: If you're running in SELinux permissive mode and Secure Boot is disabled, module signing is not required.
+
 ## Debugging
 
 ### ACPI Table Dumps
