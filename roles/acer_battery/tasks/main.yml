@@ -3,30 +3,22 @@
   ansible.builtin.package:
     name: "{{ item }}"
     state: present
-  loop: "{{ packages[ansible_os_family] }}"
   become: true
-
-- name: Check if MOK keys exist
-  ansible.builtin.stat:
-    path: "{{ acer_battery_mok_private_key }}"
-  register: mok_key
-  when: acer_battery_enable_signing
-
-- name: Generate MOK keys if they don't exist
-  ansible.builtin.command:
-    cmd: dkms mok -g
-  when: 
-    - acer_battery_enable_signing
-    - acer_battery_generate_mok
-    - not mok_key.stat.exists
-  become: true
+  with_items:
+    - git
+    - dkms
+    - kernel-headers
+    - kernel-devel
+    - gcc
+    - make
+    - mokutil
+    - rsync
 
 - name: Check SELinux status
   ansible.builtin.command:
     cmd: getenforce
   register: selinux_status
   changed_when: false
-  failed_when: false
 
 - name: Check Secure Boot status
   ansible.builtin.command:
@@ -52,40 +44,76 @@
 
 - name: Check if acer-wmi-battery directory exists
   ansible.builtin.stat:
-    path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
-  register: module_dir
+    path: "{{ acer_battery_source_dir }}"
+  register: source_dir
 
-- name: Clone acer-wmi-battery repository
+- name: Get real home directory
+  ansible.builtin.shell:
+    cmd: "getent passwd $SUDO_USER | cut -d: -f6"
+  register: home_dir
+  changed_when: false
+  become: true
+
+- name: Remove temporary repository if it exists
+  ansible.builtin.file:
+    path: "/tmp/acer-wmi-battery"
+    state: absent
+  become: false
+
+- name: Clone acer-wmi-battery repository to temporary location
   ansible.builtin.git:
     repo: "{{ acer_battery_repo_url }}"
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
-    version: "master"
-    update: yes
-    force: yes
+    dest: "/tmp/acer-wmi-battery"
+    version: "{{ acer_battery_version }}"
+    accept_hostkey: true
   register: git_clone
-  when: not module_dir.stat.exists
-  notify: rebuild_module
+  become: false
+
+- name: Create system directory
+  ansible.builtin.file:
+    path: "{{ acer_battery_source_dir }}"
+    state: directory
+    mode: '0755'
+  when: git_clone.changed
   become: true
-  check_mode: no
-  changed_when: not module_dir.stat.exists
+
+- name: Install rsync
+  ansible.builtin.package:
+    name: rsync
+    state: present
+  when: git_clone.changed
+  become: true
+
+- name: Move repository to system directory
+  ansible.builtin.shell:
+    cmd: "rsync -av --exclude='.git' /tmp/acer-wmi-battery/ {{ acer_battery_source_dir }}/"
+  when: git_clone.changed
+  register: move_repo
+  become: true
+
+- name: Clean up temporary repository
+  ansible.builtin.file:
+    path: "/tmp/acer-wmi-battery"
+    state: absent
+  when: git_clone.changed
+  become: false
 
 - name: Update acer-wmi-battery repository
   ansible.builtin.git:
     repo: "{{ acer_battery_repo_url }}"
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
-    version: "master"
-    update: yes
-    force: yes
+    dest: "{{ acer_battery_source_dir }}"
+    version: "{{ acer_battery_version }}"
+    accept_hostkey: true
+    update: true
+  environment:
+    GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -A"
+  when: source_dir.stat.exists
   register: git_update
-  when: module_dir.stat.exists
-  notify: rebuild_module
   become: true
-  check_mode: no
-  changed_when: false
 
 - name: Create scripts directory
   ansible.builtin.file:
-    path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/scripts"
+    path: "{{ acer_battery_source_dir }}/scripts"
     state: directory
     mode: '0755'
   become: true
@@ -93,152 +121,120 @@
 - name: Install module signing script
   ansible.builtin.template:
     src: scripts/sign-modules.sh.j2
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/scripts/sign-modules.sh"
+    dest: "{{ acer_battery_source_dir }}/scripts/sign-modules.sh"
     mode: '0755'
   become: true
-  notify: rebuild_module
   when: signing_required
 
 - name: Install module verification script
   ansible.builtin.template:
     src: scripts/verify-module.sh.j2
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/scripts/verify-module.sh"
+    dest: "{{ acer_battery_source_dir }}/scripts/verify-module.sh"
     mode: '0755'
   become: true
 
 - name: Create proper Makefile for kernel module
   ansible.builtin.copy:
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/Makefile"
+    dest: "{{ acer_battery_source_dir }}/Makefile"
     content: |
       obj-m := acer-wmi-battery.o
-
-      KVERSION := $(shell uname -r)
-      KDIR := /lib/modules/$(KVERSION)/build
-
-      PWD := $(shell pwd)
-
-      default:
-      	$(MAKE) -C $(KDIR) M=$(PWD) modules
-
+          
+      all:
+      	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+          
       clean:
-      	$(MAKE) -C $(KDIR) M=$(PWD) clean
-
-      install:
-      	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
-      	depmod -a
+      	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
     mode: '0644'
   register: makefile_update
   become: true
 
 - name: Calculate source code checksum
   ansible.builtin.stat:
-    path: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/acer-wmi-battery.c"
-    checksum_algorithm: sha256
-    get_checksum: true
-  register: source_code_stat
+    path: "{{ acer_battery_source_dir }}/acer-wmi-battery.c"
+  register: source_code
 
 - name: Verify source code integrity
   ansible.builtin.fail:
     msg: "Source code appears to be corrupted (empty or invalid)"
-  when: source_code_stat.stat.size < 1000 or source_code_stat.stat.exists == false
+  when: not source_code.stat.exists or source_code.stat.size == 0
 
 - name: Backup source code if not already backed up
   ansible.builtin.copy:
-    src: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/acer-wmi-battery.c"
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/acer-wmi-battery.c.backup"
+    src: "{{ acer_battery_source_dir }}/acer-wmi-battery.c"
+    dest: "{{ acer_battery_source_dir }}/acer-wmi-battery.c.backup"
     remote_src: true
     force: false
-  when: source_code_stat.stat.exists == true
+  when: source_code.stat.exists == true
+  become: true
 
 - name: Install DKMS configuration
   ansible.builtin.template:
     src: dkms.conf.j2
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/dkms.conf"
+    dest: "{{ acer_battery_source_dir }}/dkms.conf"
     mode: '0644'
   register: dkms_config
   notify: rebuild_module
   become: true
-  check_mode: no
 
 - name: Register with DKMS
   ansible.builtin.command:
-    cmd: "dkms add -m acer-wmi-battery -v {{ acer_battery_version }}"
+    cmd: dkms add -m acer-wmi-battery -v {{ acer_battery_version }}
   register: dkms_add
-  changed_when: dkms_add.rc == 0
-  failed_when: dkms_add.rc != 0 and 'already exists' not in dkms_add.stderr
+  changed_when: "'Error' not in dkms_add.stderr"
+  failed_when: false
+  notify: rebuild_module
   become: true
-  check_mode: no
 
-- name: Build and install with DKMS
+- name: Build and install module
   ansible.builtin.command:
-    cmd: "dkms install -m acer-wmi-battery -v {{ acer_battery_version }}"
+    cmd: dkms install -m acer-wmi-battery -v {{ acer_battery_version }}
   register: dkms_install
-  changed_when: dkms_install.rc == 0
-  failed_when: dkms_install.rc != 0 and 'already installed' not in dkms_install.stderr
-  notify: load_module
+  changed_when: "'Error' not in dkms_install.stderr"
+  failed_when: false
+  notify: rebuild_module
   become: true
-  check_mode: no
 
-- name: Verify DKMS build success
+- name: Check if module exists
   ansible.builtin.stat:
-    path: "/lib/modules/{{ ansible_kernel }}/extra/acer-wmi-battery.ko.xz"
-    get_checksum: true
+    path: "/lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko"
   register: module_stat
 
 - name: Restore from backup if build failed
   ansible.builtin.copy:
-    src: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/acer-wmi-battery.c.backup"
-    dest: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/acer-wmi-battery.c"
+    src: "{{ acer_battery_source_dir }}/acer-wmi-battery.c.backup"
+    dest: "{{ acer_battery_source_dir }}/acer-wmi-battery.c"
     remote_src: true
-  when: module_stat.stat.exists == false and source_code_stat.stat.exists == true
+  when: module_stat.stat.exists == false and source_code.stat.exists == true
+  become: true
 
 - name: Fail if module build failed and no backup available
   ansible.builtin.fail:
-    msg: "Module build failed and no backup available to restore from"
-  when: module_stat.stat.exists == false and source_code_stat.stat.exists == false
+    msg: "Module build failed and no backup is available to restore from"
+  when: module_stat.stat.exists == false and source_code.stat.exists == false
+
+- name: Load module
+  ansible.builtin.command:
+    cmd: modprobe acer-wmi-battery
+  register: modprobe_result
+  become: true
+  ignore_errors: true
 
 - name: Verify module functionality
   ansible.builtin.command:
-    cmd: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}/scripts/verify-module.sh"
+    cmd: "{{ acer_battery_source_dir }}/scripts/verify-module.sh"
   register: verify_result
-  failed_when: verify_result.rc != 0
   changed_when: false
-  become: true
-
-- name: Check if module is loaded
-  ansible.builtin.command:
-    cmd: lsmod | grep -q acer_wmi_battery
-  register: module_loaded
-  changed_when: false
-  failed_when: false
-
-- name: Load module if not loaded
-  ansible.builtin.command:
-    cmd: modprobe acer_wmi_battery
-  when: module_loaded.rc != 0
-  register: modprobe_result
-  become: true
-
-- name: Wait for sysfs interface
-  ansible.builtin.wait_for:
-    path: /sys/bus/wmi/drivers/acer-wmi-battery/health_mode
-    timeout: 10
-  register: sysfs_wait
-  ignore_errors: true
-
-- name: Show module status
-  ansible.builtin.debug:
-    msg: "Module loaded successfully. Health mode interface is {% if sysfs_wait.failed %}not {% endif %}available."
+  failed_when: verify_result.stdout == "Module is not loaded"
 
 - name: Show MOK enrollment instructions
   ansible.builtin.debug:
     msg: |
-      Module signing is enabled. To complete the setup:
-      1. Run: sudo mokutil --import {{ acer_battery_mok_public_key }}
-      2. Create a one-time password when prompted
-      3. Reboot your system
-      4. During boot, select "Enroll MOK" and follow the prompts
-      5. Enter the password you created
+      Module signing is required. You need to enroll the MOK key on next boot:
+      1. Reboot your system
+      2. During boot, you'll be prompted to enroll the MOK key
+      3. Select "Enroll MOK"
+      4. Select "Continue"
+      5. Enter the password: {{ acer_battery_mok_password }}
       6. Select "Yes" to enroll the key
       7. Select "Reboot"
   when: 
