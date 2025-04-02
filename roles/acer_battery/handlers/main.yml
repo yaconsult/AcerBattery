@@ -1,10 +1,11 @@
 ---
 - name: rebuild_module
-  command:
+  ansible.builtin.command:
     cmd: "dkms build -m acer-wmi-battery -v {{ acer_battery_version }}"
   notify: load_module
 
 - name: load_module
-  modprobe:
-    name: acer-wmi-battery
+  community.general.modprobe:
+    name: acer_wmi_battery
     state: present
+  ignore_errors: true

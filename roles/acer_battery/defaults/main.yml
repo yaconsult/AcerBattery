@@ -7,6 +7,7 @@ packages:
     - linux-headers-{{ ansible_kernel }}
     - build-essential
     - mokutil
+    - rsync
   RedHat:
     - git
     - dkms
@@ -15,6 +16,16 @@ packages:
     - gcc
     - make
     - mokutil
+    - rsync
+  Fedora:
+    - git
+    - dkms
+    - kernel-headers
+    - kernel-devel
+    - gcc
+    - make
+    - mokutil
+    - rsync
   Suse:
     - git
     - dkms
@@ -23,12 +34,14 @@ packages:
     - gcc
     - make
     - mokutil
+    - rsync
   Archlinux:
     - git
     - dkms
     - linux-headers
     - base-devel
     - mokutil
+    - rsync
 
 # Version of the module to install
 acer_battery_version: "main"

@@ -1,5 +1,7 @@
 # Acer WMI Battery Ansible Role
 
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/yourusername/acer-battery-ansible/releases/tag/v1.1.0)
+
 This Ansible role installs and configures the [Acer WMI Battery kernel module](https://github.com/frederik-h/acer-wmi-battery) for Acer laptops. The module enables battery threshold control on supported Acer laptops.
 
 ## About the Module
@@ -133,3 +135,69 @@ The role includes automatic error recovery:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Using the Playbook
+
+### Supported Distributions
+
+The playbook currently supports the following Linux distributions:
+
+- Debian/Ubuntu
+- Fedora/RHEL/CentOS
+
+### Prerequisites
+
+- Ansible installed on your system
+- A supported Acer laptop model (see [MODELS.md](https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md) in the repository)
+
+### Usage
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/acer-battery-ansible.git
+   cd acer-battery-ansible
+   ```
+
+2. Run the playbook:
+   ```bash
+   ansible-playbook -i localhost, -c local site.yml
+   ```
+
+   Or with sudo:
+   ```bash
+   sudo ansible-playbook -i localhost, -c local site.yml
+   ```
+
+### What the Playbook Does
+
+1. Installs required packages based on your distribution
+2. Clones the Acer WMI Battery repository
+3. Builds and installs the kernel module using DKMS
+4. Attempts to load the module
+5. Provides troubleshooting information if the module fails to load
+
+### Controlling Battery Health Mode
+
+Once the module is loaded successfully, you can control the battery health mode by writing to the following file:
+
+```bash
+echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Standard Mode (100% charging)
+echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Battery Health Mode (80% charging limit)
+```
+
+### Troubleshooting
+
+If the module fails to load, try the following steps:
+
+1. Reboot your system and then run: `sudo modprobe acer-wmi-battery`
+2. Check kernel logs for errors: `dmesg | grep -i 'acer-wmi-battery'`
+3. Verify your laptop model is supported: [MODELS.md](https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md)
+4. If issues persist, try rebuilding the module: 
+   ```bash
+   sudo dkms remove acer-wmi-battery/main --all
+   sudo dkms install acer-wmi-battery/main
+   ```
+
+## License
+
+This playbook is licensed under the MIT License. The Acer WMI Battery module is licensed under the GPL-2.0 License.

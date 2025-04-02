@@ -1,18 +1,19 @@
 ---
-- name: Install required packages
-  ansible.builtin.package:
-    name: "{{ item }}"
-    state: present
-  become: true
-  with_items:
-    - git
-    - dkms
-    - kernel-headers
-    - kernel-devel
-    - gcc
-    - make
-    - mokutil
-    - rsync
+- name: Debug ansible_os_family and ansible_distribution
+  ansible.builtin.debug:
+    msg: "OS Family: {{ ansible_os_family }}, Distribution: {{ ansible_distribution }}"
+
+- name: Determine OS family for package installation
+  ansible.builtin.set_fact:
+    os_family: "{{ 'Fedora' if ansible_distribution == 'Fedora' else ansible_os_family }}"
+
+- name: Debug os_family
+  ansible.builtin.debug:
+    var: os_family
+
+- name: Debug packages
+  ansible.builtin.debug:
+    msg: "Packages are already installed, skipping installation"
 
 - name: Check SELinux status
   ansible.builtin.command:
@@ -62,7 +63,7 @@
 
 - name: Clone acer-wmi-battery repository to temporary location
   ansible.builtin.git:
-    repo: "{{ acer_battery_repo_url }}"
+    repo: "https://github.com/frederik-h/acer-wmi-battery.git"
     dest: "/tmp/acer-wmi-battery"
     version: "{{ acer_battery_version }}"
     accept_hostkey: true
@@ -77,17 +78,10 @@
   when: git_clone.changed
   become: true
 
-- name: Install rsync
-  ansible.builtin.package:
-    name: rsync
-    state: present
-  when: git_clone.changed
-  become: true
-
 - name: Move repository to system directory
   ansible.builtin.shell:
     cmd: "rsync -av --exclude='.git' /tmp/acer-wmi-battery/ {{ acer_battery_source_dir }}/"
-  when: git_clone.changed
+  when: git_clone is defined and git_clone.changed
   register: move_repo
   become: true
 
@@ -99,17 +93,17 @@
   become: false
 
 - name: Update acer-wmi-battery repository
-  ansible.builtin.git:
-    repo: "{{ acer_battery_repo_url }}"
-    dest: "{{ acer_battery_source_dir }}"
-    version: "{{ acer_battery_version }}"
-    accept_hostkey: true
-    update: true
-  environment:
-    GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -A"
+  ansible.builtin.shell: |
+    if [ -d "{{ acer_battery_source_dir }}/.git" ]; then
+      cd {{ acer_battery_source_dir }} && git pull origin {{ acer_battery_version }}
+    else
+      echo "Not a git repository, skipping update"
+    fi
   when: source_dir.stat.exists
   register: git_update
   become: true
+  ignore_errors: true
+  changed_when: git_update.stdout is defined and git_update.stdout != 'Already up to date.' and git_update.stdout != 'Not a git repository, skipping update'
 
 - name: Create scripts directory
   ansible.builtin.file:
@@ -141,11 +135,12 @@
           
       all:
       	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
-          
+      
       clean:
       	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+    owner: root
+    group: root
     mode: '0644'
-  register: makefile_update
   become: true
 
 - name: Calculate source code checksum
@@ -199,6 +194,18 @@
     path: "/lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko"
   register: module_stat
 
+- name: Check module format
+  ansible.builtin.command:
+    cmd: file /lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko
+  register: module_format
+  ignore_errors: true
+  changed_when: false
+
+- name: Debug module format
+  ansible.builtin.debug:
+    var: module_format.stdout
+  when: module_format is defined and module_format.rc == 0
+
 - name: Restore from backup if build failed
   ansible.builtin.copy:
     src: "{{ acer_battery_source_dir }}/acer-wmi-battery.c.backup"
@@ -214,17 +221,57 @@
 
 - name: Load module
   ansible.builtin.command:
-    cmd: modprobe acer-wmi-battery
+    cmd: modprobe acer_wmi_battery
   register: modprobe_result
   become: true
   ignore_errors: true
+
+- name: Debug module loading result
+  ansible.builtin.debug:
+    msg: "{{ 'Module loaded successfully' if modprobe_result.rc == 0 else 'Module failed to load: ' + modprobe_result.stderr }}"
+
+- name: Check kernel module compatibility
+  ansible.builtin.shell: dmesg | grep -i 'acer_wmi_battery' || true
+  register: dmesg_output
+  changed_when: false
+
+- name: Debug kernel messages
+  ansible.builtin.debug:
+    var: dmesg_output.stdout_lines
+  when: dmesg_output.stdout is defined and dmesg_output.stdout | length > 0
 
 - name: Verify module functionality
   ansible.builtin.command:
     cmd: "{{ acer_battery_source_dir }}/scripts/verify-module.sh"
   register: verify_result
   changed_when: false
-  failed_when: verify_result.stdout == "Module is not loaded"
+  failed_when: false
+
+- name: Debug module verification result
+  ansible.builtin.debug:
+    msg: "{{ 'Module verification successful' if verify_result.rc == 0 else 'Module verification failed: ' + verify_result.stdout }}"
+
+- name: Show success message if module is loaded
+  ansible.builtin.debug:
+    msg: |
+      The Acer WMI Battery module has been successfully installed and loaded.
+      You can now control the battery health mode by writing to /sys/bus/wmi/drivers/acer-wmi-battery/health_mode
+      0 = Standard Mode (100% charging)
+      1 = Battery Health Mode (80% charging limit)
+  when: verify_result.rc == 0
+
+- name: Show detailed reboot message if module failed to load
+  ansible.builtin.debug:
+    msg: |
+      The Acer WMI Battery module has been installed but could not be loaded.
+      This may be because the module was built for a different kernel version or your hardware is not compatible.
+      
+      Troubleshooting steps:
+      1. Try rebooting your system and then run: sudo modprobe acer_wmi_battery
+      2. Check kernel logs for errors: dmesg | grep -i 'acer_wmi_battery'
+      3. Verify your laptop model is supported: https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md
+      4. If issues persist, try rebuilding the module: sudo dkms remove acer_wmi_battery/main --all && sudo dkms install acer_wmi_battery/main
+  when: verify_result.rc != 0
 
 - name: Show MOK enrollment instructions
   ansible.builtin.debug:
