@@ -1,0 +1,11 @@
+---
+- name: Check if MOK keys exist
+  ansible.builtin.stat:
+    path: "{{ acer_battery_mok_key }}"
+  register: mok_key
+
+- name: Generate MOK keys if they don't exist
+  ansible.builtin.command:
+    cmd: openssl req -new -x509 -newkey rsa:2048 -keyout {{ acer_battery_mok_key }} -outform DER -out {{ acer_battery_mok_pub }} -nodes -days 36500 -subj "/CN=Acer Battery Module/"
+  when: not mok_key.stat.exists
+  become: true
