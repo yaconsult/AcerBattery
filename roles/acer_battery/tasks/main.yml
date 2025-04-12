@@ -48,6 +48,19 @@
     path: "{{ acer_battery_source_dir }}"
   register: source_dir
 
+- name: Check for conflicting DKMS modules
+  ansible.builtin.shell: dkms status | grep acer-wmi-battery | grep -v "{{ acer_battery_version }}" || true
+  register: conflicting_modules
+  changed_when: false
+
+- name: Remove conflicting DKMS modules
+  ansible.builtin.shell: dkms remove acer-wmi-battery/$(echo "{{ item }}" | awk '{print $1}' | cut -d'/' -f2 | cut -d',' -f1) --all
+  with_items: "{{ conflicting_modules.stdout_lines }}"
+  when: conflicting_modules.stdout_lines | length > 0
+  register: removed_modules
+  changed_when: removed_modules.rc == 0
+  become: true
+
 - name: Get real home directory
   ansible.builtin.shell:
     cmd: "getent passwd $SUDO_USER | cut -d: -f6"
@@ -166,9 +179,16 @@
   ansible.builtin.template:
     src: dkms.conf.j2
     dest: "{{ acer_battery_source_dir }}/dkms.conf"
+    owner: root
+    group: root
     mode: '0644'
-  register: dkms_config
-  notify: rebuild_module
+  become: true
+
+- name: Ensure DKMS service is enabled
+  ansible.builtin.systemd:
+    name: dkms.service
+    enabled: true
+    state: started
   become: true
 
 - name: Register with DKMS
