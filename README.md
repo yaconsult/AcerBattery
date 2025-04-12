@@ -18,6 +18,7 @@ This Ansible role focuses solely on automating the installation and configuratio
 - Distribution-agnostic package management
 - Automatic upstream repository updates via SSH
 - DKMS integration for kernel updates
+- Automatic module rebuilding when kernels are updated
 - Module autoloading configuration
 - Comprehensive test suite
 - Full idempotency support
@@ -189,14 +190,30 @@ echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Battery H
 
 If the module fails to load, try the following steps:
 
-1. Reboot your system and then run: `sudo modprobe acer-wmi-battery`
-2. Check kernel logs for errors: `dmesg | grep -i 'acer-wmi-battery'`
+1. Reboot your system and then run: `sudo modprobe acer_wmi_battery`
+2. Check kernel logs for errors: `dmesg | grep -i 'acer_wmi_battery'`
 3. Verify your laptop model is supported: [MODELS.md](https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md)
 4. If issues persist, try rebuilding the module: 
    ```bash
    sudo dkms remove acer-wmi-battery/main --all
    sudo dkms install acer-wmi-battery/main
    ```
+
+### Kernel Updates
+
+The playbook configures DKMS to automatically rebuild the module when you update your kernel. After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
+
+If the module is not automatically rebuilt after a kernel update, you can manually rebuild it:
+
+```bash
+sudo dkms autoinstall
+```
+
+You can also check the status of all DKMS modules:
+
+```bash
+sudo dkms status
+```
 
 ## License
 
