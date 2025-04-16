@@ -5,7 +5,6 @@
   notify: load_module
 
 - name: load_module
-  community.general.modprobe:
-    name: acer_wmi_battery
-    state: present
+  ansible.builtin.shell: |
+    modprobe acer_wmi_battery || modprobe acer-wmi-battery
   ignore_errors: true

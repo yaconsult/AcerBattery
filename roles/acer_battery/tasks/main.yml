@@ -240,11 +240,12 @@
   when: module_stat.stat.exists == false and source_code.stat.exists == false
 
 - name: Load module
-  ansible.builtin.command:
-    cmd: modprobe acer_wmi_battery
+  ansible.builtin.shell: |
+    modprobe acer_wmi_battery || modprobe acer-wmi-battery
   register: modprobe_result
   become: true
   ignore_errors: true
+  changed_when: modprobe_result.rc == 0
 
 - name: Debug module loading result
   ansible.builtin.debug:

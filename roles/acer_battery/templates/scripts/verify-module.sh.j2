@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check if module is loaded
-if ! lsmod | grep -q acer_wmi_battery; then
+if ! lsmod | grep -q 'acer_wmi_battery\|acer-wmi-battery'; then
     echo "Module is not loaded"
     exit 1
 fi
