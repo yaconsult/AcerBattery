@@ -201,12 +201,29 @@ If the module fails to load, try the following steps:
 
 ### Kernel Updates
 
-The playbook configures DKMS to automatically rebuild the module when you update your kernel. After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
+The playbook configures DKMS to automatically rebuild the module when you update your kernel. Additionally, it installs a custom kernel post-install hook that ensures the module is rebuilt whenever a new kernel is installed.
 
-If the module is not automatically rebuilt after a kernel update, you can manually rebuild it:
+This provides two layers of protection:
+1. Standard DKMS automatic rebuilding
+2. Custom kernel post-install hook as a fallback
+
+After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
+
+If the module is not automatically rebuilt after a kernel update, you can check its status using the provided utility:
 
 ```bash
-sudo dkms autoinstall
+acer-battery-status
+```
+
+This will show whether the module is loaded, the current battery health mode, and provide troubleshooting steps if needed.
+
+You can also manually rebuild the module for your current kernel:
+
+```bash
+sudo dkms uninstall -m acer-wmi-battery -v main -k "$(uname -r)" || true
+sudo dkms build -m acer-wmi-battery -v main -k "$(uname -r)"
+sudo dkms install -m acer-wmi-battery -v main -k "$(uname -r)"
+sudo modprobe acer_wmi_battery
 ```
 
 You can also check the status of all DKMS modules:

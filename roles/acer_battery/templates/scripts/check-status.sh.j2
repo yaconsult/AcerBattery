@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Check if module is loaded
+if lsmod | grep -q 'acer_wmi_battery\|acer-wmi-battery'; then
+    echo "The acer_wmi_battery module is loaded."
+    
+    # Check if health mode control exists
+    if [ -f "/sys/bus/wmi/drivers/acer-wmi-battery/health_mode" ]; then
+        health_mode=$(cat /sys/bus/wmi/drivers/acer-wmi-battery/health_mode 2>/dev/null)
+        if [ "$health_mode" == "0" ]; then
+            echo "Battery health mode: Standard Mode (100% charging)"
+        elif [ "$health_mode" == "1" ]; then
+            echo "Battery health mode: Battery Health Mode (80% charging limit)"
+        else
+            echo "Battery health mode: Unknown ($health_mode)"
+        fi
+    else
+        echo "Health mode control not found."
+    fi
+else
+    echo "The acer_wmi_battery module is not loaded. Please ensure it is built and loaded using DKMS."
+    
+    # Check DKMS status
+    echo "\nDKMS Status:"
+    dkms status | grep acer-wmi-battery
+    
+    # Check for kernel version mismatch
+    echo "\nKernel Version Mismatch Check:"
+    current_kernel=$(uname -r)
+    if dmesg | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"; then
+        echo "Kernel version mismatch detected. The module was built for a different kernel."
+        echo "Run the following commands to rebuild the module for the current kernel:"
+        echo "sudo dkms uninstall -m acer-wmi-battery -v main -k \"$current_kernel\" || true"
+        echo "sudo dkms build -m acer-wmi-battery -v main -k \"$current_kernel\""
+        echo "sudo dkms install -m acer-wmi-battery -v main -k \"$current_kernel\""
+        echo "sudo modprobe acer_wmi_battery"
+    else
+        echo "No kernel version mismatch detected."
+    fi
+fi

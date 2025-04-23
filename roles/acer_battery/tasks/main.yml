@@ -140,6 +140,34 @@
     mode: '0755'
   become: true
 
+- name: Install status check script
+  ansible.builtin.template:
+    src: scripts/check-status.sh.j2
+    dest: /usr/local/bin/acer-battery-status
+    mode: '0755'
+  become: true
+
+- name: Create symlink for status script
+  ansible.builtin.file:
+    src: /usr/local/bin/acer-battery-status
+    dest: /usr/local/bin/status
+    state: link
+  become: true
+
+- name: Create kernel post-install hook directory
+  ansible.builtin.file:
+    path: /etc/kernel/postinst.d
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Install kernel post-install hook
+  ansible.builtin.template:
+    src: kernel-postinst.j2
+    dest: /etc/kernel/postinst.d/99-acer-wmi-battery
+    mode: '0755'
+  become: true
+
 - name: Create proper Makefile for kernel module
   ansible.builtin.copy:
     dest: "{{ acer_battery_source_dir }}/Makefile"
@@ -193,18 +221,27 @@
 
 - name: Register with DKMS
   ansible.builtin.command:
-    cmd: dkms add -m acer-wmi-battery -v {{ acer_battery_version }}
+    cmd: "dkms add -m acer-wmi-battery -v {{ acer_battery_version }}"
   register: dkms_add
-  changed_when: "'Error' not in dkms_add.stderr"
-  failed_when: false
-  notify: rebuild_module
+  changed_when: dkms_add.rc == 0
+  failed_when: dkms_add.rc != 0 and "Error! DKMS tree already contains" not in dkms_add.stderr
+  become: true
+
+- name: Force rebuild for current kernel
+  ansible.builtin.shell: |
+    current_kernel=$(uname -r)
+    dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$current_kernel" || true
+    dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$current_kernel"
+    dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$current_kernel"
+  register: dkms_force_rebuild
+  changed_when: dkms_force_rebuild.rc == 0
   become: true
 
 - name: Build and install module
   ansible.builtin.command:
     cmd: dkms install -m acer-wmi-battery -v {{ acer_battery_version }}
   register: dkms_install
-  changed_when: "'Error' not in dkms_install.stderr"
+  changed_when: dkms_install.rc == 0
   failed_when: false
   notify: rebuild_module
   become: true
@@ -241,7 +278,22 @@
 
 - name: Load module
   ansible.builtin.shell: |
-    modprobe acer_wmi_battery || modprobe acer-wmi-battery
+    if modprobe acer_wmi_battery || modprobe acer-wmi-battery; then
+      echo "Module loaded successfully"
+      exit 0
+    fi
+    
+    current_kernel=$(uname -r)
+    if dmesg | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"; then
+      echo "Kernel version mismatch detected, attempting to rebuild for current kernel"
+      dkms uninstall -m acer-wmi-battery -v main -k "$current_kernel" || true
+      dkms build -m acer-wmi-battery -v main -k "$current_kernel" && \
+      dkms install -m acer-wmi-battery -v main -k "$current_kernel" && \
+      modprobe acer_wmi_battery || modprobe acer-wmi-battery
+    else
+      echo "Module failed to load for unknown reasons"
+      exit 1
+    fi
   register: modprobe_result
   become: true
   ignore_errors: true
