@@ -6,5 +6,20 @@
 
 - name: load_module
   ansible.builtin.shell: |
-    modprobe acer_wmi_battery || modprobe acer-wmi-battery
+    if modprobe acer_wmi_battery || modprobe acer-wmi-battery; then
+      echo "Module loaded successfully"
+      exit 0
+    fi
+    
+    current_kernel=$(uname -r)
+    if dmesg | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"; then
+      echo "Kernel version mismatch detected, attempting to rebuild for current kernel"
+      dkms uninstall -m acer-wmi-battery -v main -k "$current_kernel" || true
+      dkms build -m acer-wmi-battery -v main -k "$current_kernel" && \
+      dkms install -m acer-wmi-battery -v main -k "$current_kernel" && \
+      modprobe acer_wmi_battery || modprobe acer-wmi-battery
+    else
+      echo "Module failed to load for unknown reasons"
+      exit 1
+    fi
   ignore_errors: true

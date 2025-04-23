@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# This script is run after a new kernel is installed
+# It rebuilds the acer-wmi-battery module for the new kernel
+
+KERNEL_VERSION="$1"
+
+if [ -z "$KERNEL_VERSION" ]; then
+    echo "No kernel version specified, using current kernel"
+    KERNEL_VERSION=$(uname -r)
+fi
+
+echo "Rebuilding acer-wmi-battery module for kernel $KERNEL_VERSION"
+
+# Uninstall the module for this kernel version if it exists
+dkms uninstall -m acer-wmi-battery -v main -k "$KERNEL_VERSION" 2>/dev/null || true
+
+# Build and install the module for this kernel version
+dkms build -m acer-wmi-battery -v main -k "$KERNEL_VERSION" && \
+dkms install -m acer-wmi-battery -v main -k "$KERNEL_VERSION"
+
+echo "Module rebuild complete for kernel $KERNEL_VERSION"
+
+exit 0
