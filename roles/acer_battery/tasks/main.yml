@@ -168,6 +168,13 @@
     mode: '0755'
   become: true
 
+- name: Install module loading configuration
+  ansible.builtin.template:
+    src: modules-load.conf.j2
+    dest: /etc/modules-load.d/acer-wmi-battery.conf
+    mode: '0644'
+  become: true
+
 - name: Create proper Makefile for kernel module
   ansible.builtin.copy:
     dest: "{{ acer_battery_source_dir }}/Makefile"
