@@ -211,7 +211,13 @@ After a kernel update, the module should be automatically rebuilt and loaded whe
 
 ### Module Loading
 
-The playbook configures the module to be loaded automatically at boot time by adding it to `/etc/modules-load.d/acer-wmi-battery.conf`. This ensures that the module is loaded even if it's not loaded automatically by other means.
+The playbook configures the module to be loaded automatically at boot time using multiple methods for maximum reliability:
+
+1. **Kernel Module Configuration**: Adds the module to `/etc/modules-load.d/acer-wmi-battery.conf` to be loaded by the kernel module loading system.
+
+2. **Systemd Service**: Creates a systemd service at `/etc/systemd/system/acer-wmi-battery.service` that loads the module after the system has fully booted, ensuring it's loaded even if the kernel module loading system fails.
+
+This dual approach ensures that the module is loaded even if one method fails.
 
 If the module is not automatically rebuilt after a kernel update, you can check its status using the provided utility:
 

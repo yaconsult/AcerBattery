@@ -23,3 +23,11 @@
       exit 1
     fi
   ignore_errors: true
+
+- name: enable_systemd_service
+  ansible.builtin.systemd:
+    name: acer-wmi-battery.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true

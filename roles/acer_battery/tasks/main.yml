@@ -175,6 +175,14 @@
     mode: '0644'
   become: true
 
+- name: Install systemd service for module loading
+  ansible.builtin.template:
+    src: acer-wmi-battery.service.j2
+    dest: /etc/systemd/system/acer-wmi-battery.service
+    mode: '0644'
+  become: true
+  notify: enable_systemd_service
+
 - name: Create proper Makefile for kernel module
   ansible.builtin.copy:
     dest: "{{ acer_battery_source_dir }}/Makefile"
