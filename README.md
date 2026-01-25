@@ -225,6 +225,25 @@ the 80% limit and shut down automatically. A simple approach is:
 If you implement this yourself, ensure the module is loaded (`modprobe acer_wmi_battery`) and
 use the sysfs path shown above for reads/writes.
 
+This repository also includes a ready-to-use example script:
+
+```bash
+sudo bash examples/charge_full_then_limit_and_shutdown.sh
+```
+
+Useful options:
+
+```bash
+# Poll every 60 seconds
+sudo bash examples/charge_full_then_limit_and_shutdown.sh --interval 60
+
+# Charge only to 95%, then re-enable the limit and shut down
+sudo bash examples/charge_full_then_limit_and_shutdown.sh --target 95
+
+# Do not shut down at the end
+sudo bash examples/charge_full_then_limit_and_shutdown.sh --no-shutdown
+```
+
 ### Troubleshooting
 
 If the module fails to load, try the following steps:
