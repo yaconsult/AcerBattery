@@ -242,6 +242,12 @@ sudo bash examples/charge_full_then_limit_and_shutdown.sh --target 95
 
 # Do not shut down at the end
 sudo bash examples/charge_full_then_limit_and_shutdown.sh --no-shutdown
+
+# Allow running even if AC adapter is not detected
+sudo bash examples/charge_full_then_limit_and_shutdown.sh --allow-on-battery
+
+# Dry-run (print actions without changing health_mode or shutting down)
+sudo bash examples/charge_full_then_limit_and_shutdown.sh --dry-run
 ```
 
 ### Troubleshooting
