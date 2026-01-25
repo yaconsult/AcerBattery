@@ -282,6 +282,33 @@ This provides two layers of protection:
 
 After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
 
+#### Verifying after a kernel update (recommended)
+
+After installing a new kernel (before rebooting), you can verify the rebuild occurred:
+
+```bash
+sudo tail -200 /var/log/acer-wmi-battery-kernel-install.log
+sudo dkms status | grep acer-wmi-battery
+```
+
+After rebooting into the new kernel:
+
+```bash
+uname -r
+lsmod | grep acer_wmi_battery
+```
+
+If it is not loaded, try:
+
+```bash
+sudo modprobe acer_wmi_battery
+```
+
+#### Caveats
+
+- **Missing headers/build tree:** if `/lib/modules/<kernel>/build` is not present at kernel install time, DKMS builds can fail. The Fedora/RHEL hook logs this; install the matching kernel headers/devel package and re-run `dkms build/install`.
+- **Secure Boot:** if you enable Secure Boot, the module must be signed and the signing key must be enrolled (MOK). If the module fails to load with a signature-related error, re-run the role and follow the MOK enrollment prompt on the next boot.
+
 ### Module Loading
 
 The playbook configures the module to be loaded automatically at boot time using multiple methods for maximum reliability:
