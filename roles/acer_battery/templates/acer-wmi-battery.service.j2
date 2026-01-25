@@ -6,11 +6,10 @@ After=local-fs.target
 [Service]
 Type=oneshot
 ExecStartPre=/bin/sleep 5
-ExecStart=/bin/bash -c '/usr/bin/modprobe acer_wmi_battery || /usr/bin/modprobe acer-wmi-battery || (dkms uninstall -m acer-wmi-battery -v main -k "$(uname -r)" || true && dkms build -m acer-wmi-battery -v main -k "$(uname -r)" --force && dkms install -m acer-wmi-battery -v main -k "$(uname -r)" && /usr/bin/modprobe acer_wmi_battery)'
+ExecStart=/bin/bash -c '/usr/bin/modprobe acer_wmi_battery || /usr/bin/modprobe acer-wmi-battery || (dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" || true && dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" --force && dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" && /usr/bin/modprobe acer_wmi_battery)'
 RemainAfterExit=yes
 Restart=on-failure
 RestartSec=10
-MaximumFailureCount=3
 
 [Install]
 WantedBy=multi-user.target

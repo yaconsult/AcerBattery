@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# kernel-install hook for Fedora/RHEL (dnf/rpm kernel installs)
+# Called as: <script> add|remove <kernel-version> <entry-dir> <kernel-image>
+
+set -u
+
+ACTION="${1:-}"
+KERNEL_VERSION="${2:-}"
+
+LOGFILE="/var/log/acer-wmi-battery-kernel-install.log"
+
+LOGGER_TAG="acer-wmi-battery-kernel-install"
+
+log_fallback() {
+  if command -v logger >/dev/null 2>&1; then
+    logger -t "$LOGGER_TAG" -- "$*" || true
+  fi
+}
+
+log() {
+  local msg="[$(date -Is)] $*"
+  if ( umask 022 && touch "$LOGFILE" 2>/dev/null && echo "$msg" >> "$LOGFILE" 2>/dev/null ); then
+    return 0
+  fi
+  log_fallback "$msg"
+}
+
+if [ -z "$ACTION" ] || [ -z "$KERNEL_VERSION" ]; then
+  log "Missing arguments: action='$ACTION' kernel_version='$KERNEL_VERSION'"
+  exit 0
+fi
+
+if [ "$ACTION" != "add" ]; then
+  log "Ignoring action '$ACTION' for kernel $KERNEL_VERSION"
+  exit 0
+fi
+
+if ! command -v dkms >/dev/null 2>&1; then
+  log "dkms not found; cannot rebuild module for kernel $KERNEL_VERSION"
+  exit 0
+fi
+
+# If headers/build tree aren't present yet, DKMS build will fail.
+# Do not fail kernel installation; just log.
+if [ ! -e "/lib/modules/${KERNEL_VERSION}/build" ]; then
+  log "Kernel build directory /lib/modules/${KERNEL_VERSION}/build not found; headers likely missing"
+fi
+
+log "Rebuilding acer-wmi-battery ({{ acer_battery_version }}) for kernel $KERNEL_VERSION"
+
+# Try a clean rebuild; never fail the kernel install transaction.
+dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" >/dev/null 2>&1 || true
+
+if dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" --force >>"$LOGFILE" 2>&1; then
+  dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" >>"$LOGFILE" 2>&1 || true
+else
+  log "DKMS build failed for kernel $KERNEL_VERSION (see output above if file logging is enabled)"
+fi
+
+log "Done"
+exit 0

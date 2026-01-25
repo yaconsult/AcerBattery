@@ -10,7 +10,6 @@ ExecStart=/bin/bash -c '/usr/bin/modprobe acer_wmi_battery || /usr/bin/modprobe 
 RemainAfterExit=yes
 Restart=on-failure
 RestartSec=10
-MaximumFailureCount=3
 
 [Install]
 WantedBy=multi-user.target

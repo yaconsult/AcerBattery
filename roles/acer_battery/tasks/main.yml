@@ -30,10 +30,9 @@
 
 - name: Set signing required fact
   ansible.builtin.set_fact:
-    signing_required: "{{ acer_battery_force_signing | default(false) or 
+    signing_required: "{{ acer_battery_force_signing | default(false) or
                         (not acer_battery_force_no_signing | default(false) and
-                         (selinux_status.stdout == 'Enforcing' or 
-                          'SecureBoot enabled' in secureboot_status.stdout)) }}"
+                         ('SecureBoot enabled' in secureboot_status.stdout)) }}"
 
 - name: Debug signing status
   ansible.builtin.debug:
@@ -76,7 +75,7 @@
 
 - name: Clone acer-wmi-battery repository to temporary location
   ansible.builtin.git:
-    repo: "https://github.com/frederik-h/acer-wmi-battery.git"
+    repo: "{{ acer_battery_repo_url }}"
     dest: "/tmp/acer-wmi-battery"
     version: "{{ acer_battery_version }}"
     accept_hostkey: true
@@ -165,6 +164,20 @@
   ansible.builtin.template:
     src: kernel-postinst.j2
     dest: /etc/kernel/postinst.d/99-acer-wmi-battery
+    mode: '0755'
+  become: true
+
+- name: Create kernel-install hook directory
+  ansible.builtin.file:
+    path: /etc/kernel/install.d
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Install kernel-install hook
+  ansible.builtin.template:
+    src: kernel-install.j2
+    dest: /etc/kernel/install.d/90-acer-wmi-battery.install
     mode: '0755'
   become: true
 

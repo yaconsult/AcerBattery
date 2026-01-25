@@ -13,12 +13,12 @@ fi
 echo "Rebuilding acer-wmi-battery module for kernel $KERNEL_VERSION"
 
 # Uninstall the module for this kernel version if it exists
-dkms uninstall -m acer-wmi-battery -v main -k "$KERNEL_VERSION" 2>/dev/null || true
+dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" 2>/dev/null || true
 
 # Build and install the module for this kernel version
 # Always use --force to ensure a clean rebuild
-dkms build -m acer-wmi-battery -v main -k "$KERNEL_VERSION" --force && \
-dkms install -m acer-wmi-battery -v main -k "$KERNEL_VERSION"
+dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" --force && \
+dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION"
 
 echo "Module rebuild complete for kernel $KERNEL_VERSION"
 
