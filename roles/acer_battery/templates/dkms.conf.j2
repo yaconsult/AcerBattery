@@ -4,9 +4,8 @@ BUILT_MODULE_NAME[0]="acer-wmi-battery"
 DEST_MODULE_NAME[0]="acer_wmi_battery"
 DEST_MODULE_LOCATION[0]="/extra"
 AUTOINSTALL="yes"
-REMAKE_INITRD="yes"
 {% if signing_required %}
 POST_BUILD="./sign-modules.sh ${kernelver}"
 {% endif %}
 MAKE[0]="make"
-CLEAN="make clean"
+CLEAN[0]="make clean"

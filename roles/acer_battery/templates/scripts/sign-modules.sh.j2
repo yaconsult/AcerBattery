@@ -1,9 +1,28 @@
 #!/bin/bash
 
+KERNEL_VERSION="$1"
+
+if [ -z "$KERNEL_VERSION" ]; then
+    echo "No kernel version specified"
+    exit 1
+fi
+
+SIGN_FILE="/lib/modules/${KERNEL_VERSION}/build/scripts/sign-file"
+if [ ! -x "$SIGN_FILE" ]; then
+    SIGN_FILE="/usr/src/kernels/${KERNEL_VERSION}/scripts/sign-file"
+fi
+if [ ! -x "$SIGN_FILE" ]; then
+    SIGN_FILE="/usr/src/linux-headers-${KERNEL_VERSION}/scripts/sign-file"
+fi
+if [ ! -x "$SIGN_FILE" ]; then
+    echo "Cannot find kernel sign-file tool for ${KERNEL_VERSION}"
+    exit 1
+fi
+
 shopt -s nullglob
 for module in *.ko; do
     if [ -f "$module" ]; then
         echo "Signing $module"
-        /usr/src/kernels/$1/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub "$module"
+        "$SIGN_FILE" sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub "$module"
     fi
 done

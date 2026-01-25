@@ -44,9 +44,9 @@ else
     if sudo dmesg | grep -q "acer_wmi_battery: version magic.*should be.*$KERNEL_VERSION"; then
         echo "Kernel version mismatch detected. The module was built for a different kernel."
         echo "Run the following commands to rebuild the module for the current kernel:"
-        echo "sudo dkms uninstall -m acer-wmi-battery -v main -k \"$KERNEL_VERSION\" || true"
-        echo "sudo dkms build -m acer-wmi-battery -v main -k \"$KERNEL_VERSION\" --force"
-        echo "sudo dkms install -m acer-wmi-battery -v main -k \"$KERNEL_VERSION\""
+        echo "sudo dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k \"$KERNEL_VERSION\" || true"
+        echo "sudo dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k \"$KERNEL_VERSION\" --force"
+        echo "sudo dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k \"$KERNEL_VERSION\""
         echo "sudo modprobe acer_wmi_battery"
     else
         echo "No kernel version mismatch detected."

@@ -26,3 +26,6 @@ venv.bak/
 .coverage
 coverage.xml
 *.log
+
+.idea/
+uv.lock

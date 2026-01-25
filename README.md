@@ -16,7 +16,7 @@ This Ansible role focuses solely on automating the installation and configuratio
 ## Features
 
 - Distribution-agnostic package management
-- Automatic upstream repository updates via SSH
+- Automatic upstream repository updates
 - DKMS integration for kernel updates
 - Automatic module rebuilding when kernels are updated
 - Module autoloading configuration
@@ -52,24 +52,27 @@ The health mode is particularly useful for laptops that are frequently plugged i
   - SUSE
   - Arch Linux
 - Python 3.x
-- Git with SSH access
+- Git
 - DKMS
 - rsync
 
 ## Recent Changes
 
 ### Repository Access Improvements
-- Updated to use SSH for repository access
-- Added support for private repository access
+- Updated default repository access to HTTPS (works out of the box with sudo)
+- SSH repository access is still supported by overriding `acer_battery_repo_url`
 - Improved error handling for repository operations
 
 ### Module Signing Improvements
-- Added automatic module signing based on SELinux and Secure Boot status
-- Module will be signed automatically when required
+- Added automatic module signing based on Secure Boot status
+- Module will be signed automatically when required (or when forced)
 - Added configuration options to force signing on/off:
   - `acer_battery_force_signing: true` - Always sign the module
   - `acer_battery_force_no_signing: true` - Never sign the module
   - Both `false` (default) - Sign based on system status
+
+Note: With Secure Boot disabled, the module may still be signed by DKMS configuration,
+but it is not required for loading.
 
 ### Reliability Improvements
 - Added source code integrity checks
@@ -82,7 +85,7 @@ The health mode is particularly useful for laptops that are frequently plugged i
 
 1. Clone this repository:
 ```bash
-git clone git@github.com:yaconsult/ansible-acer-battery.git
+git clone https://github.com/yaconsult/ansible-acer-battery.git
 cd ansible-acer-battery
 ```
 
@@ -100,14 +103,16 @@ ansible-playbook -i inventory site.yml
 ## Configuration
 
 ### Repository Access
-By default, the role uses SSH to clone the repository. Make sure you have:
-1. SSH key configured for GitHub access
-2. SSH agent running with your key loaded
+By default, the role uses HTTPS to clone the upstream repository. If you want to use
+SSH (for example, for a private fork), set:
+
+```yaml
+acer_battery_repo_url: "git@github.com:youruser/acer-wmi-battery.git"
+```
 
 ### Module Signing
 The module will be signed when either:
-1. SELinux is in enforcing mode
-2. Secure Boot is enabled
+1. Secure Boot is enabled
 
 You can override this behavior:
 
@@ -201,7 +206,16 @@ If the module fails to load, try the following steps:
 
 ### Kernel Updates
 
-The playbook configures DKMS to automatically rebuild the module when you update your kernel. Additionally, it installs a custom kernel post-install hook that ensures the module is rebuilt whenever a new kernel is installed.
+The role configures DKMS to automatically rebuild the module when you update your kernel.
+
+Additionally, it installs OS-specific hooks as a fallback:
+
+- Debian/Ubuntu: `/etc/kernel/postinst.d/99-acer-wmi-battery`
+- Fedora/RHEL: `/etc/kernel/install.d/90-acer-wmi-battery.install`
+
+On Fedora/RHEL, the hook logs to:
+
+`/var/log/acer-wmi-battery-kernel-install.log`
 
 This provides two layers of protection:
 1. Standard DKMS automatic rebuilding

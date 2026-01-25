@@ -46,8 +46,8 @@ packages:
 # Version of the module to install
 acer_battery_version: "main"
 
-# Repository URL (using SSH for private access)
-acer_battery_repo_url: "git@github.com:frederik-h/acer-wmi-battery.git"
+# Repository URL
+acer_battery_repo_url: "https://github.com/frederik-h/acer-wmi-battery.git"
 
 # Source directory
 acer_battery_source_dir: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"

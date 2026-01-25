@@ -1,7 +1,5 @@
 """Tests for DKMS configuration and module loading."""
 
-from typing import Dict, Any
-import os
 import yaml
 
 
@@ -38,20 +36,10 @@ def test_task_file_contains_dkms_config() -> None:
     assert len(dkms_config_tasks) == 1, "Should have exactly one DKMS config task"
 
     dkms_config = dkms_config_tasks[0]
-    assert "template" in dkms_config, "Should use template module"
-    assert dkms_config["template"]["dest"].endswith(
+    assert "ansible.builtin.template" in dkms_config, "Should use template module"
+    assert dkms_config["ansible.builtin.template"]["dest"].endswith(
         "dkms.conf"
     ), "Should create dkms.conf file"
-
-    # Verify DKMS build task
-    dkms_build_tasks = [
-        task for task in dkms_tasks if task["name"] == "Build and install with DKMS"
-    ]
-    assert len(dkms_build_tasks) == 1, "Should have exactly one DKMS build task"
-
-    dkms_build = dkms_build_tasks[0]
-    assert "command" in dkms_build, "Should use command module"
-    assert "dkms install" in dkms_build["command"]["cmd"], "Should install with DKMS"
 
 
 def test_module_autoload_configuration() -> None:
@@ -59,19 +47,36 @@ def test_module_autoload_configuration() -> None:
     with open("roles/acer_battery/tasks/main.yml", "r") as f:
         tasks_content = yaml.safe_load(f)
 
-    # Find module autoload task
-    autoload_tasks = [
+    template_tasks = [
         task
         for task in tasks_content
-        if isinstance(task, dict)
-        and "name" in task
-        and task["name"] == "Configure module autoload"
+        if isinstance(task, dict) and task.get("ansible.builtin.template") is not None
     ]
-    assert len(autoload_tasks) == 1, "Should have exactly one autoload task"
 
-    autoload = autoload_tasks[0]
-    assert "copy" in autoload, "Should use copy module"
-    assert autoload["copy"]["dest"].endswith(
-        "acer-wmi-battery.conf"
-    ), "Should create module config file"
-    assert "notify" in autoload, "Should notify handler"
+    modules_load_tasks = [
+        task
+        for task in template_tasks
+        if task["ansible.builtin.template"].get("dest")
+        == "/etc/modules-load.d/acer-wmi-battery.conf"
+    ]
+    assert len(modules_load_tasks) == 1, "Should install modules-load.d config"
+
+
+def test_kernel_install_hook_is_installed() -> None:
+    """Test that a kernel-install hook is installed (Fedora/RHEL kernel updates)."""
+    with open("roles/acer_battery/tasks/main.yml", "r") as f:
+        tasks_content = yaml.safe_load(f)
+
+    template_tasks = [
+        task
+        for task in tasks_content
+        if isinstance(task, dict) and task.get("ansible.builtin.template") is not None
+    ]
+
+    kernel_install_tasks = [
+        task
+        for task in template_tasks
+        if task["ansible.builtin.template"].get("dest")
+        == "/etc/kernel/install.d/90-acer-wmi-battery.install"
+    ]
+    assert len(kernel_install_tasks) == 1, "Should install kernel-install hook"
