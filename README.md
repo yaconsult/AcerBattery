@@ -191,6 +191,40 @@ echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Standard 
 echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Battery Health Mode (80% charging limit)
 ```
 
+### Practical usage examples
+
+If you toggle this often, shell aliases make it quick:
+
+```bash
+alias charge_limit_off='echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
+alias charge_limit_on='echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
+alias charge_state='sudo cat /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
+```
+
+To (re)load the module, prefer `modprobe` (works with DKMS-installed modules) over `insmod`:
+
+```bash
+alias charge_module='sudo modprobe acer_wmi_battery'
+```
+
+You can also use the helper installed by this role:
+
+```bash
+acer-battery-status
+```
+
+#### Automation example (charge to 100%, then limit + shutdown)
+
+Some users prefer to temporarily allow charging to 100% (for calibration/travel), then re-enable
+the 80% limit and shut down automatically. A simple approach is:
+
+1. Set `health_mode` to `0` (unlimited)
+2. Poll battery capacity periodically
+3. When capacity reaches 100%, set `health_mode` to `1` and run `shutdown`
+
+If you implement this yourself, ensure the module is loaded (`modprobe acer_wmi_battery`) and
+use the sysfs path shown above for reads/writes.
+
 ### Troubleshooting
 
 If the module fails to load, try the following steps:
