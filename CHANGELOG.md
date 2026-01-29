@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Added one-liner examples and helper scripts to enable/disable charge limiting via `health_mode`
+- Added a Fedora/RHEL `kernel-install` hook to rebuild/install the DKMS module on kernel updates
+- Added an optional `ANSIBLE-MANAGED.txt` marker file with key paths, hook paths, and troubleshooting hints
+
+### Changed
+- Improved Secure Boot/MOK handling to use the enrolled key material consistently (PEM for signing + DER for enrollment)
+- Made DKMS force rebuild for the current kernel opt-in
+- Improved lockdown-friendly diagnostics by preferring `journalctl` where appropriate
+- Updated Ansible Galaxy metadata URLs to point to the correct repository
+
+### Fixed
+- Silenced pytest-asyncio loop-scope deprecation warnings via explicit configuration
+- Removed default pytest coverage settings that produced “no data collected” warnings for this repo
+
 ## [1.1.0] - 2025-04-02
 
 ### Added
