@@ -218,8 +218,8 @@ The playbook currently supports the following Linux distributions:
 Once the module is loaded successfully, you can control the battery health mode by writing to the following file:
 
 ```bash
-echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Standard Mode (100% charging)
-echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Battery Health Mode (80% charging limit)
+echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null  # Standard Mode (100% charging)
+echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null  # Battery Health Mode (80% charging limit)
 ```
 
 Note: avoid `sudo echo 1 > /sys/.../health_mode` because the shell redirection (`>`) runs as your user and will
