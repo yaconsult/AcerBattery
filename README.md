@@ -342,6 +342,9 @@ sudo modprobe acer_wmi_battery
      shim as trusted (e.g. an option like "Select an UEFI file as trusted for executing") if you see a
      "Security boot fail" screen after enabling Secure Boot.
 
+     On some Acer/Insyde BIOS systems, Secure Boot options (including trusting an EFI file) may be hidden
+     until a Supervisor password is set in BIOS/UEFI.
+
    - Dual-boot note: this Secure Boot flow has been validated on a Windows 11 + Fedora dual-boot system
      using the GRUB bootloader.
 
