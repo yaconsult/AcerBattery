@@ -268,7 +268,16 @@
     owner: root
     group: root
     mode: '0644'
+  register: dkms_conf_template
   become: true
+
+- name: Refresh DKMS tree when dkms.conf changes
+  ansible.builtin.command:
+    cmd: "dkms remove -m acer-wmi-battery -v {{ acer_battery_version }} --all"
+  changed_when: true
+  failed_when: false
+  become: true
+  when: dkms_conf_template.changed
 
 - name: Ensure DKMS service is enabled
   ansible.builtin.systemd:
