@@ -123,6 +123,9 @@ acer_battery_install_managed_marker: false
 ### Module Signing
 This role is designed to work across distributions regardless of whether Secure Boot and/or SELinux are enabled.
 
+SELinux tools are optional. If `getenforce` is not installed on your system, the role will treat SELinux as
+"not installed" and continue.
+
 The module will be signed when Secure Boot is enabled (or when signing is explicitly forced). If Secure Boot is
 disabled, signing is not required for loading.
 
