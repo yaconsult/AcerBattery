@@ -244,6 +244,12 @@ sudo bash examples/charge_limit_on.sh
 sudo bash examples/charge_limit_off.sh
 ```
 
+If you want to see which sysfs node was detected on your system:
+
+```bash
+bash examples/find_health_mode_node.sh
+```
+
 To (re)load the module, prefer `modprobe` (works with DKMS-installed modules) over `insmod`:
 
 ```bash
