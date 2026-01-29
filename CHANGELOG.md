@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-01-28
 
 ### Added
 - Added one-liner examples and helper scripts to enable/disable charge limiting via `health_mode`
