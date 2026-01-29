@@ -23,6 +23,7 @@ This Ansible role focuses solely on automating the installation and configuratio
 - Comprehensive test suite
 - Full idempotency support
 - Automatic module signing for Secure Boot
+- Works with or without SELinux (SELinux tools are optional)
 - Source code integrity verification
 - Automatic backup and recovery
 
