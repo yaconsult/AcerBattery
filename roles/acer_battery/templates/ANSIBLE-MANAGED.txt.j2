@@ -1,0 +1,30 @@
+This source tree is managed by Ansible.
+
+Role repository:
+{{ acer_battery_role_repo_url }}
+
+Upstream driver repository:
+{{ acer_battery_repo_url }}
+
+Install location:
+{{ acer_battery_source_dir }}
+
+DKMS:
+- Package name: acer-wmi-battery
+- Version: {{ acer_battery_version }}
+
+Secure Boot module signing (only required when Secure Boot is enabled):
+- Signing key: {{ acer_battery_mok_key }}
+- Signing certificate (MOK): {{ acer_battery_mok_pub }}
+
+Kernel update hooks:
+- Debian/Ubuntu: /etc/kernel/postinst.d/99-acer-wmi-battery
+- Fedora/RHEL: /etc/kernel/install.d/90-acer-wmi-battery.install
+
+Logs (Fedora/RHEL hook):
+- /var/log/acer-wmi-battery-kernel-install.log
+
+Troubleshooting quick checks:
+- DKMS status: sudo dkms status | grep acer-wmi-battery
+- Module signature: modinfo /lib/modules/$(uname -r)/extra/acer_wmi_battery.ko.xz | grep -i signer
+- Load module: sudo modprobe acer_wmi_battery
