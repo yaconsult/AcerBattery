@@ -15,11 +15,20 @@
   ansible.builtin.debug:
     msg: "Packages are already installed, skipping installation"
 
+- name: Check if getenforce is available
+  ansible.builtin.command:
+    cmd: sh -lc 'command -v getenforce'
+  register: getenforce_check
+  changed_when: false
+  failed_when: false
+
 - name: Check SELinux status
   ansible.builtin.command:
     cmd: getenforce
   register: selinux_status
   changed_when: false
+  failed_when: false
+  when: getenforce_check.rc == 0
 
 - name: Check Secure Boot status
   ansible.builtin.command:
@@ -36,7 +45,7 @@
 
 - name: Debug signing status
   ansible.builtin.debug:
-    msg: "Module signing is {{ 'required' if signing_required else 'not required' }} (SELinux: {{ selinux_status.stdout }}, Secure Boot: {{ 'enabled' if 'SecureBoot enabled' in secureboot_status.stdout else 'disabled' }})"
+    msg: "Module signing is {{ 'required' if signing_required else 'not required' }} (SELinux: {{ (selinux_status.stdout if (selinux_status is defined and selinux_status.stdout is defined and selinux_status.stdout | length > 0) else 'not installed') }}, Secure Boot: {{ 'enabled' if 'SecureBoot enabled' in secureboot_status.stdout else 'disabled' }})"
 
 - name: Generate MOK key pair
   ansible.builtin.include_tasks: generate-mok-keys.yml
