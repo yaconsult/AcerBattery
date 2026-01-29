@@ -222,6 +222,9 @@ echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Standard 
 echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Battery Health Mode (80% charging limit)
 ```
 
+Note: avoid `sudo echo 1 > /sys/.../health_mode` because the shell redirection (`>`) runs as your user and will
+usually fail with "Permission denied". Use `sudo tee` (as shown above) or the helper scripts in `examples/`.
+
 If your system exposes the control under a different sysfs path, these one-liners try both common locations:
 
 ```bash
