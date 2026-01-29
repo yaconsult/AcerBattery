@@ -5,7 +5,12 @@ set -euo pipefail
 # Exit code 0: printed a path
 # Exit code 1: nothing found
 
-want_writable="${1:-writable}"
+mode="${1:-any}"
+
+if [[ "$mode" != "any" && "$mode" != "writable" ]]; then
+  echo "Usage: $0 [any|writable]" >&2
+  exit 2
+fi
 
 candidates=()
 
@@ -41,7 +46,7 @@ best_path=""
 best_score=-1
 
 for p in "${uniq_candidates[@]}"; do
-  if [[ "$want_writable" == "writable" ]] && [[ ! -w "$p" ]]; then
+  if [[ "$mode" == "writable" ]] && [[ ! -w "$p" ]]; then
     continue
   fi
 
@@ -61,12 +66,17 @@ fi
 # Still cheap enough on most laptops.
 while IFS= read -r p; do
   [[ -e "$p" ]] || continue
-  if [[ "$want_writable" == "writable" ]] && [[ ! -w "$p" ]]; then
+  if [[ "$mode" == "writable" ]] && [[ ! -w "$p" ]]; then
     continue
   fi
   echo "$p"
   exit 0
 done < <(find /sys -maxdepth 6 -type f -name health_mode 2>/dev/null)
 
-echo "Could not find a ${want_writable} health_mode sysfs node. Is the module loaded (sudo modprobe acer_wmi_battery)?" >&2
+if [[ "$mode" == "writable" ]]; then
+  echo "Could not find a writable health_mode sysfs node." >&2
+  echo "Hint: try running as root (sudo $0 writable), or use '$0 any' and write with sudo tee." >&2
+else
+  echo "Could not find a health_mode sysfs node. Is the module loaded (sudo modprobe acer_wmi_battery)?" >&2
+fi
 exit 1
