@@ -272,6 +272,7 @@
   register: dkms_force_rebuild
   changed_when: dkms_force_rebuild.rc == 0
   become: true
+  when: acer_battery_force_rebuild_current_kernel | default(false)
 
 - name: Build and install module
   ansible.builtin.command:
@@ -320,7 +321,8 @@
     fi
     
     current_kernel=$(uname -r)
-    if dmesg | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"; then
+    if (command -v journalctl >/dev/null 2>&1 && journalctl -k -b --no-pager 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel") || \
+       (dmesg 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"); then
       echo "Kernel version mismatch detected, attempting to rebuild for current kernel"
       dkms uninstall -m acer-wmi-battery -v main -k "$current_kernel" || true
       dkms build -m acer-wmi-battery -v main -k "$current_kernel" && \
@@ -340,7 +342,12 @@
     msg: "{{ 'Module loaded successfully' if modprobe_result.rc == 0 else 'Module failed to load: ' + modprobe_result.stderr }}"
 
 - name: Check kernel module compatibility
-  ansible.builtin.shell: dmesg | grep -i 'acer_wmi_battery' || true
+  ansible.builtin.shell: |
+    if command -v journalctl >/dev/null 2>&1; then
+      journalctl -k -b --no-pager 2>/dev/null | grep -i 'acer_wmi_battery' || true
+    else
+      dmesg 2>/dev/null | grep -i 'acer_wmi_battery' || true
+    fi
   register: dmesg_output
   changed_when: false
 
@@ -377,7 +384,7 @@
       
       Troubleshooting steps:
       1. Try rebooting your system and then run: sudo modprobe acer_wmi_battery
-      2. Check kernel logs for errors: dmesg | grep -i 'acer_wmi_battery'
+      2. Check kernel logs for errors: sudo journalctl -k -b | grep -i 'acer_wmi_battery'
       3. Verify your laptop model is supported: https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md
       4. If issues persist, try rebuilding the module: sudo dkms remove acer_wmi_battery/main --all && sudo dkms install acer_wmi_battery/main
   when: verify_result.rc != 0
@@ -390,9 +397,8 @@
       2. During boot, you'll be prompted to enroll the MOK key
       3. Select "Enroll MOK"
       4. Select "Continue"
-      5. Enter the password: {{ acer_battery_mok_password }}
-      6. Select "Yes" to enroll the key
-      7. Select "Reboot"
+      5. Select "Yes" to enroll the key
+      6. Select "Reboot"
   when: 
     - signing_required
     - mok_key is changed
