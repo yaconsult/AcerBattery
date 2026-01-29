@@ -111,8 +111,10 @@ acer_battery_repo_url: "git@github.com:youruser/acer-wmi-battery.git"
 ```
 
 ### Module Signing
-The module will be signed when either:
-1. Secure Boot is enabled
+This role is designed to work across distributions regardless of whether Secure Boot and/or SELinux are enabled.
+
+The module will be signed when Secure Boot is enabled (or when signing is explicitly forced). If Secure Boot is
+disabled, signing is not required for loading.
 
 You can override this behavior:
 
@@ -121,6 +123,15 @@ You can override this behavior:
 acer_battery_force_signing: true    # Always sign
 # or
 acer_battery_force_no_signing: true # Never sign
+```
+
+On Fedora/RHEL with Secure Boot enabled, the kernel may enforce additional restrictions ("lockdown").
+If your module was signed with a MOK certificate but still fails to load, you may need to trust MOK
+keys in the kernel keyring and reboot:
+
+```bash
+sudo mokutil --trust-mok
+sudo reboot
 ```
 
 ### Error Recovery
@@ -307,7 +318,25 @@ sudo modprobe acer_wmi_battery
 #### Caveats
 
 - **Missing headers/build tree:** if `/lib/modules/<kernel>/build` is not present at kernel install time, DKMS builds can fail. The Fedora/RHEL hook logs this; install the matching kernel headers/devel package and re-run `dkms build/install`.
-- **Secure Boot:** if you enable Secure Boot, the module must be signed and the signing key must be enrolled (MOK). If the module fails to load with a signature-related error, re-run the role and follow the MOK enrollment prompt on the next boot.
+- **Secure Boot:** if you enable Secure Boot, the module must be signed and the signing key must be enrolled (MOK).
+
+   Fedora-specific notes:
+   - DKMS signs modules using the key/certificate at `/var/lib/dkms/mok.key` and `/var/lib/dkms/mok.pub`.
+     If you enrolled a different MOK certificate than the one DKMS is using, you may see errors like
+     `Key was rejected by service`. Ensure the enrolled MOK matches DKMS' `mok.pub`, or update DKMS to
+     use the enrolled key/cert.
+   - Some systems also require trusting MOK keys for module loading:
+     `sudo mokutil --trust-mok` then reboot.
+
+   - Firmware/BIOS note: some systems require restoring default Secure Boot keys and/or marking Fedora's
+     shim as trusted (e.g. an option like "Select an UEFI file as trusted for executing") if you see a
+     "Security boot fail" screen after enabling Secure Boot.
+
+   - Dual-boot note: this Secure Boot flow has been validated on a Windows 11 + Fedora dual-boot system
+     using the GRUB bootloader.
+
+ - **SELinux / lockdown troubleshooting:** with Secure Boot enabled, `dmesg` access may be restricted even
+   for root. Prefer `sudo journalctl -k -b` to inspect kernel messages.
 
 ### Module Loading
 
