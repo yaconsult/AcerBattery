@@ -220,6 +220,10 @@ Note: while this role is intended to work across multiple Linux distributions, i
 4. Attempts to load the module
 5. Provides troubleshooting information if the module fails to load
 
+In normal use, you typically run this role once. After that, DKMS and the installed kernel update hooks should
+automatically rebuild and install the module when a new kernel is installed. You only need to re-run the role
+to upgrade/change configuration, rotate signing keys, or troubleshoot a broken installation.
+
 ### Controlling Battery Health Mode
 
 Once the module is loaded successfully, you can control the battery health mode by writing to the following file:
