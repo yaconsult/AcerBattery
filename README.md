@@ -41,6 +41,13 @@ echo 0 > /sys/devices/platform/acer-wmi-battery/health_mode
 echo 1 > /sys/devices/platform/acer-wmi-battery/calibration_mode
 ```
 
+Note: the exact sysfs path for `health_mode` can differ across laptop models and kernels. If the paths above do
+not exist on your system, use the helper script in `examples/` to discover the correct node:
+
+```bash
+bash examples/find_health_mode_node.sh
+```
+
 The health mode is particularly useful for laptops that are frequently plugged in, as limiting the maximum charge to 80% can significantly extend the battery's lifespan.
 
 ## Requirements
@@ -237,7 +244,7 @@ alias charge_limit_on='echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/h
 alias charge_state='sudo cat /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
 ```
 
-This repository also provides small helper scripts that try both sysfs paths:
+This repository also provides small helper scripts that automatically discover the correct sysfs node:
 
 ```bash
 sudo bash examples/charge_limit_on.sh
