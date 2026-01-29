@@ -1,6 +1,5 @@
 ansible>=2.9.0
 pytest>=7.0.0
-pytest-cov>=4.0.0
 pytest-mypy>=0.10.0
 pytest-black>=0.3.0
 mypy>=1.0.0
