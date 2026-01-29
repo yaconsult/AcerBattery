@@ -110,6 +110,16 @@ SSH (for example, for a private fork), set:
 acer_battery_repo_url: "git@github.com:youruser/acer-wmi-battery.git"
 ```
 
+### Installed source directory marker
+By default, the role writes a small `ANSIBLE-MANAGED.txt` marker file into `{{ acer_battery_source_dir }}`
+to document where the tree came from (this role + upstream repo) and where key hooks/logs live.
+
+To disable it:
+
+```yaml
+acer_battery_install_managed_marker: false
+```
+
 ### Module Signing
 This role is designed to work across distributions regardless of whether Secure Boot and/or SELinux are enabled.
 

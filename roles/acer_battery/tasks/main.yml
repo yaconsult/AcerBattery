@@ -117,6 +117,14 @@
   ignore_errors: true
   changed_when: git_update.stdout is defined and git_update.stdout != 'Already up to date.' and git_update.stdout != 'Not a git repository, skipping update'
 
+- name: Install Ansible-managed marker
+  ansible.builtin.template:
+    src: ANSIBLE-MANAGED.txt.j2
+    dest: "{{ acer_battery_source_dir }}/ANSIBLE-MANAGED.txt"
+    mode: '0644'
+  become: true
+  when: acer_battery_install_managed_marker | default(true)
+
 - name: Create scripts directory
   ansible.builtin.file:
     path: "{{ acer_battery_source_dir }}/scripts"

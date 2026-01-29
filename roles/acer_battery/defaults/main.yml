@@ -52,6 +52,9 @@ acer_battery_repo_url: "https://github.com/frederik-h/acer-wmi-battery.git"
 # Source directory
 acer_battery_source_dir: "/usr/src/acer-wmi-battery-{{ acer_battery_version }}"
 
+acer_battery_install_managed_marker: true
+acer_battery_role_repo_url: "https://github.com/yaconsult/AcerBattery.git"
+
 # Module signing configuration
 acer_battery_force_signing: false
 acer_battery_force_no_signing: false
