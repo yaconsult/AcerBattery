@@ -212,6 +212,18 @@ echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Standard 
 echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode  # Battery Health Mode (80% charging limit)
 ```
 
+If your system exposes the control under a different sysfs path, these one-liners try both common locations:
+
+```bash
+# Enable charge limit (80%)
+echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null 2>&1 || \
+  echo 1 | sudo tee /sys/devices/platform/acer-wmi-battery/health_mode
+
+# Disable charge limit (100%)
+echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null 2>&1 || \
+  echo 0 | sudo tee /sys/devices/platform/acer-wmi-battery/health_mode
+```
+
 ### Practical usage examples
 
 If you toggle this often, shell aliases make it quick:
@@ -220,6 +232,13 @@ If you toggle this often, shell aliases make it quick:
 alias charge_limit_off='echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
 alias charge_limit_on='echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
 alias charge_state='sudo cat /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
+```
+
+This repository also provides small helper scripts that try both sysfs paths:
+
+```bash
+sudo bash examples/charge_limit_on.sh
+sudo bash examples/charge_limit_off.sh
 ```
 
 To (re)load the module, prefer `modprobe` (works with DKMS-installed modules) over `insmod`:

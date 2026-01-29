@@ -20,13 +20,13 @@ tags:
 
 dependencies: {}
 
-repository: https://github.com/yaconsult/ansible-role-acer-battery
+repository: https://github.com/yaconsult/AcerBattery
 
-documentation: https://github.com/yaconsult/ansible-role-acer-battery/blob/main/README.md
+documentation: https://github.com/yaconsult/AcerBattery/blob/main/README.md
 
-homepage: https://github.com/yaconsult/ansible-role-acer-battery
+homepage: https://github.com/yaconsult/AcerBattery
 
-issues: https://github.com/yaconsult/ansible-role-acer-battery/issues
+issues: https://github.com/yaconsult/AcerBattery/issues
 
 build_ignore:
   - .venv

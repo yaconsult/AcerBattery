@@ -59,8 +59,10 @@ acer_battery_role_repo_url: "https://github.com/yaconsult/AcerBattery.git"
 acer_battery_force_signing: false
 acer_battery_force_no_signing: false
 
+acer_battery_force_rebuild_current_kernel: false
+
 # MOK configuration
-acer_battery_mok_password: "password"
 acer_battery_mok_dir: "/var/lib/dkms"
 acer_battery_mok_key: "{{ acer_battery_mok_dir }}/mok.key"
 acer_battery_mok_pub: "{{ acer_battery_mok_dir }}/mok.pub"
+acer_battery_mok_der: "{{ acer_battery_mok_dir }}/mok.der"
