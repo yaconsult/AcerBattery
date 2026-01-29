@@ -186,6 +186,8 @@ The playbook currently supports the following Linux distributions:
 - Debian/Ubuntu
 - Fedora/RHEL/CentOS
 
+Note: while this role is intended to work across multiple Linux distributions, it has only been tested on Fedora so far.
+
 ### Prerequisites
 
 - Ansible installed on your system
