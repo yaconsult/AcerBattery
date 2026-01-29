@@ -32,13 +32,10 @@ After installation, you can control the battery features through sysfs:
 
 ```bash
 # Enable health mode (limit charging to 80%)
-echo 1 > /sys/devices/platform/acer-wmi-battery/health_mode
+echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
 
 # Disable health mode (allow full charging)
-echo 0 > /sys/devices/platform/acer-wmi-battery/health_mode
-
-# Start battery calibration
-echo 1 > /sys/devices/platform/acer-wmi-battery/calibration_mode
+echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
 ```
 
 Note: the exact sysfs path for `health_mode` can differ across laptop models and kernels. If the paths above do
@@ -46,6 +43,13 @@ not exist on your system, use the helper script in `examples/` to discover the c
 
 ```bash
 bash examples/find_health_mode_node.sh
+```
+
+If you prefer, you can use the helper scripts which automatically discover the correct node and write with sudo:
+
+```bash
+sudo bash examples/charge_limit_on.sh
+sudo bash examples/charge_limit_off.sh
 ```
 
 The health mode is particularly useful for laptops that are frequently plugged in, as limiting the maximum charge to 80% can significantly extend the battery's lifespan.
