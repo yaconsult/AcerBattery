@@ -15,6 +15,19 @@
   ansible.builtin.debug:
     msg: "Packages are already installed, skipping installation"
 
+- name: "Preflight: ensure privilege escalation works"
+  ansible.builtin.command:
+    cmd: id -u
+  register: acer_battery_become_check
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: "Preflight: require root privileges"
+  ansible.builtin.fail:
+    msg: "This role requires root privileges. Re-run with become enabled (e.g. 'ansible-playbook -K ...' or set 'become: true') and ensure sudo/become is permitted on the target."
+  when: acer_battery_become_check.rc != 0
+
 - name: Check if getenforce is available
   ansible.builtin.command:
     cmd: sh -lc 'command -v getenforce'

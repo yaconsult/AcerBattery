@@ -192,6 +192,7 @@ Note: while this role is intended to work across multiple Linux distributions, i
 
 - Ansible installed on your system
 - A supported Acer laptop model (see [MODELS.md](https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md) in the repository)
+- Sudo access (or equivalent privilege escalation). This role installs packages, writes into `/usr/src`, installs kernel hooks, and loads kernel modules, so it must be run with `become: true`.
 
 ### Usage
 
