@@ -401,6 +401,38 @@ sudo modprobe acer_wmi_battery
  - **SELinux / lockdown troubleshooting:** with Secure Boot enabled, `dmesg` access may be restricted even
    for root. Prefer `sudo journalctl -k -b` to inspect kernel messages.
 
+#### Manual recovery: rebuild via Ansible
+
+If a kernel update was installed but the module was not rebuilt before shutdown/reboot (or if the module fails
+to load after boot), the recommended recovery path is to re-run this role with `become` enabled.
+
+From the repository root:
+
+```bash
+ansible-playbook -i localhost, -c local -K site.yml
+```
+
+If you want to explicitly force a rebuild/install for the running kernel in the same run:
+
+```bash
+ansible-playbook -i localhost, -c local -K site.yml \
+  -e acer_battery_force_rebuild_current_kernel=true
+```
+
+After the play completes:
+
+```bash
+sudo dkms status | grep acer-wmi-battery
+sudo modprobe -v acer_wmi_battery
+```
+
+On Fedora/RHEL, you can also inspect the kernel-update hook log to see whether the DKMS rebuild happened at
+kernel install time:
+
+```bash
+sudo tail -200 /var/log/acer-wmi-battery-kernel-install.log
+```
+
 ### Module Loading
 
 The playbook configures the module to be loaded automatically at boot time using multiple methods for maximum reliability:
