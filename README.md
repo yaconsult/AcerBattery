@@ -195,6 +195,23 @@ Note: while this role is intended to work across multiple Linux distributions, i
 - A supported Acer laptop model (see [MODELS.md](https://github.com/frederik-h/acer-wmi-battery/blob/main/MODELS.md) in the repository)
 - Sudo access (or equivalent privilege escalation). This role installs packages, writes into `/usr/src`, installs kernel hooks, and loads kernel modules, so it must be run with `become: true`.
 
+### Why sudo/become is required
+
+Most role actions require root privileges. Without sudo/become, you can only do limited read-only diagnostics.
+
+The role needs sudo/become to:
+- Install distribution packages (DKMS, kernel headers, build tooling)
+- Write and manage files under `/usr/src`
+- Run `dkms add/build/install/remove`
+- Install kernel update hooks under `/etc/kernel/` and `/etc/kernel/install.d/`
+- Configure auto-loading under `/etc/modules-load.d/` and systemd under `/etc/systemd/system/`
+- Load the kernel module (`modprobe`)
+
+Without sudo/become, you can still:
+- Check whether the module is loaded (`lsmod | grep acer_wmi_battery`)
+- Inspect DKMS state (`dkms status`)
+- Inspect module metadata (`modinfo acer_wmi_battery`)
+
 ### Usage
 
 1. Clone this repository:
