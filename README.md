@@ -166,6 +166,30 @@ The role includes automatic error recovery:
 - Validates module functionality
 - Automatically restores from backup if needed
 
+## Development / Testing
+
+This repository is primarily an Ansible role. The Python tooling is used for tests and linting.
+
+1. Create and activate a virtual environment:
+
+```bash
+uv venv
+source .venv/bin/activate
+```
+
+2. Install Python dependencies:
+
+```bash
+uv pip install -r requirements.txt
+```
+
+3. Run linting and tests:
+
+```bash
+ruff check .
+pytest
+```
+
 ## Contributing
 
 1. Fork the repository
