@@ -6,7 +6,7 @@ After=local-fs.target
 [Service]
 Type=oneshot
 ExecStartPre=/bin/sleep 5
-ExecStart=/bin/bash -c '/usr/bin/modprobe acer_wmi_battery || /usr/bin/modprobe acer-wmi-battery || (dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" || true && dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" --force && dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" && /usr/bin/modprobe acer_wmi_battery)'
+ExecStart=/bin/bash -c 'out="$({ /usr/bin/modprobe acer_wmi_battery || /usr/bin/modprobe acer-wmi-battery; } 2>&1)" || rc=$?; if [[ "${rc:-0}" -ne 0 ]]; then if echo "$out" | grep -qi "Key was rejected by service"; then echo "acer-wmi-battery: Secure Boot rejected the module signature (MOK not enrolled/trusted). Re-run the Ansible role to (re)generate mok.der, then enroll it via: sudo mokutil --import /var/lib/dkms/mok.der (reboot + enroll in MOK manager)." >&2; exit 1; fi; dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" || true && dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" --force && dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$(uname -r)" && /usr/bin/modprobe acer_wmi_battery; fi'
 RemainAfterExit=yes
 Restart=on-failure
 RestartSec=10
