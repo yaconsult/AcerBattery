@@ -421,6 +421,51 @@ sudo modprobe acer_wmi_battery
 - **Missing headers/build tree:** if `/lib/modules/<kernel>/build` is not present at kernel install time, DKMS builds can fail. The Fedora/RHEL hook logs this; install the matching kernel headers/devel package and re-run `dkms build/install`.
 - **Secure Boot:** if you enable Secure Boot, the module must be signed and the signing key must be enrolled (MOK).
 
+#### Secure Boot + BIOS updates: module suddenly stops loading
+
+If you recently performed a BIOS/UEFI update (common on dual-boot systems via Windows tools) and the module stopped working after reboot, Secure Boot may now be rejecting the kernel module signature.
+
+Typical symptoms:
+
+- The `status` command says the module is not loaded
+- `sudo modprobe acer_wmi_battery` fails with:
+  `Key was rejected by service`
+
+Why it happens:
+
+- Some BIOS/UEFI updates reset or change Secure Boot databases / enrolled keys.
+- When Secure Boot is enabled, the kernel will refuse to load a DKMS module unless it is signed with a key that is enrolled (MOK).
+
+Recovery (recommended):
+
+1. Re-run this role (it will ensure the enrollment certificate exists at `/var/lib/dkms/mok.der`):
+
+```bash
+ansible-playbook -i localhost, -c local -K site.yml
+```
+
+2. Import the certificate for enrollment and reboot:
+
+```bash
+sudo mokutil --import /var/lib/dkms/mok.der
+sudo reboot
+```
+
+3. At boot you will see the **MOK Manager** screen:
+
+- Choose **Enroll MOK**
+- Choose **Continue**
+- Enter the one-time password you set during `mokutil --import`
+- Reboot when prompted
+
+4. Verify the module now loads:
+
+```bash
+sudo modprobe -v acer_wmi_battery
+lsmod | grep acer_wmi_battery
+status
+```
+
    Fedora-specific notes:
    - DKMS signs modules using the key/certificate at `/var/lib/dkms/mok.key` and `/var/lib/dkms/mok.pub`.
      If you enrolled a different MOK certificate than the one DKMS is using, you may see errors like
