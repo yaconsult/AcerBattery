@@ -394,6 +394,50 @@ This provides two layers of protection:
 
 After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
 
+### Fedora release upgrades (DNF system-upgrade / GNOME/KDE Software)
+
+Fedora version upgrades typically install a new kernel and update DKMS/build tooling. In most cases the module will
+continue to work because:
+
+- DKMS will rebuild the module for newly installed kernels
+- This role also installs a Fedora/RHEL `kernel-install` hook as a fallback
+
+However, major upgrades are more disruptive than normal kernel updates. Manual steps may be required if:
+
+- DKMS/build dependencies were removed or changed during the upgrade
+- Secure Boot state or enrolled keys changed (see the Secure Boot + BIOS section below)
+
+Recommended checklist after completing the Fedora upgrade and rebooting:
+
+```bash
+uname -r
+sudo dkms status | grep acer-wmi-battery
+lsmod | grep acer_wmi_battery
+status
+```
+
+If the module is not loaded:
+
+1. Try loading it once:
+
+```bash
+sudo modprobe -v acer_wmi_battery
+```
+
+2. If you see `Key was rejected by service`, follow the Secure Boot recovery steps (MOK re-enrollment).
+
+3. Otherwise (build/tooling issue), the recommended recovery is to re-run the role:
+
+```bash
+ansible-playbook -i localhost, -c local -K site.yml
+```
+
+On Fedora/RHEL, also check the kernel hook log to confirm the rebuild ran during the upgrade:
+
+```bash
+sudo tail -200 /var/log/acer-wmi-battery-kernel-install.log
+```
+
 #### Verifying after a kernel update (recommended)
 
 After installing a new kernel (before rebooting), you can verify the rebuild occurred:
