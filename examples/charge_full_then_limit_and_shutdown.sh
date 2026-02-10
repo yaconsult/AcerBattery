@@ -101,6 +101,16 @@ read_int_file() {
   echo "$val"
 }
 
+read_temp_c() {
+  local path="$1"
+  local val
+  val=$(cat "$path" 2>/dev/null || true)
+  if ! [[ "$val" =~ ^-?[0-9]+$ ]]; then
+    return 1
+  fi
+  awk -v v="$val" 'BEGIN { printf "%.1f°C", v/1000 }'
+}
+
 set_health_mode() {
   local mode="$1"
   if [ "$DRY_RUN" -eq 1 ]; then
@@ -124,6 +134,15 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 require_module_interface
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+TEMP_PATH=""
+if [ -f "${script_dir}/find_temperature_node.sh" ]; then
+  TEMP_PATH="$(bash "${script_dir}/find_temperature_node.sh" 2>/dev/null || true)"
+fi
+if [ -n "${TEMP_PATH:-}" ] && [ ! -f "$TEMP_PATH" ]; then
+  TEMP_PATH=""
+fi
 
 CAPACITY_PATH=$(find_battery_capacity_path) || {
   echo "Could not find battery capacity at /sys/class/power_supply/BAT*/capacity" >&2
@@ -162,7 +181,16 @@ while true; do
     continue
   fi
 
-  echo "Current charge: ${CURRENT}%"
+  TEMP_DISPLAY=""
+  if [ -n "${TEMP_PATH:-}" ]; then
+    TEMP_DISPLAY=$(read_temp_c "$TEMP_PATH" 2>/dev/null || true)
+  fi
+
+  if [ -n "${TEMP_DISPLAY:-}" ]; then
+    echo "Current charge: ${CURRENT}% (temp: ${TEMP_DISPLAY})"
+  else
+    echo "Current charge: ${CURRENT}%"
+  fi
 
   if [ "$CURRENT" -ge "$TARGET_PERCENT" ]; then
     echo "Reached target (${TARGET_PERCENT}%). Enabling charge limit (health_mode=1)."
