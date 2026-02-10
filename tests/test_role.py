@@ -1,6 +1,6 @@
 """Test the acer_battery role functionality."""
 
-from typing import Dict, Any, Iterator
+from typing import Iterator
 import os
 import shutil
 import subprocess

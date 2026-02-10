@@ -10,6 +10,7 @@ This role installs and configures the [acer-wmi-battery](https://github.com/fred
 
 - **Health Mode**: Limits battery charging to 80% to preserve long-term battery capacity
 - **Calibration Mode**: Enables battery capacity calibration for accurate capacity estimates
+- **Battery Temperature**: Exposes battery temperature readings via sysfs
 
 This Ansible role focuses solely on automating the installation and configuration of the upstream module. For module-specific issues or feature requests, please refer to the [upstream repository](https://github.com/frederik-h/acer-wmi-battery).
 
@@ -39,6 +40,29 @@ echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
 echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
 ```
 
+The upstream driver also supports a battery **calibration mode**. This can take a long time and is recommended
+only while connected to AC power. Start/stop it via sysfs:
+
+```bash
+# Start calibration
+echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/calibration_mode >/dev/null
+
+# Stop calibration
+echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/calibration_mode >/dev/null
+```
+
+For the authoritative calibration procedure and caveats, see upstream:
+https://github.com/frederik-h/acer-wmi-battery#calibration-mode
+
+You can also read the battery temperature (in **millidegree Celsius**) via sysfs:
+
+```bash
+cat /sys/bus/wmi/drivers/acer-wmi-battery/temperature
+
+# Convert to °C
+awk '{ printf "%.1f°C\n", $1/1000 }' /sys/bus/wmi/drivers/acer-wmi-battery/temperature
+```
+
 Note: the exact sysfs path for `health_mode` can differ across laptop models and kernels. If the paths above do
 not exist on your system, use the helper script in `examples/` to discover the correct node:
 
@@ -46,11 +70,23 @@ not exist on your system, use the helper script in `examples/` to discover the c
 bash examples/find_health_mode_node.sh
 ```
 
+If your system exposes the `temperature` node under a different sysfs path, you can discover it with:
+
+```bash
+bash examples/find_temperature_node.sh
+```
+
 If you prefer, you can use the helper scripts which automatically discover the correct node and write with sudo:
 
 ```bash
 sudo bash examples/charge_limit_on.sh
 sudo bash examples/charge_limit_off.sh
+```
+
+For temperature monitoring with automatic discovery:
+
+```bash
+bash examples/battery_temperature.sh
 ```
 
 The health mode is particularly useful for laptops that are frequently plugged in, as limiting the maximum charge to 80% can significantly extend the battery's lifespan.
@@ -298,6 +334,10 @@ If you toggle this often, shell aliases make it quick:
 alias charge_limit_off='echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
 alias charge_limit_on='echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
 alias charge_state='sudo cat /sys/bus/wmi/drivers/acer-wmi-battery/health_mode'
+
+# Battery temperature (millidegree Celsius) + display in °C
+alias battery_temp_raw='cat /sys/bus/wmi/drivers/acer-wmi-battery/temperature'
+alias battery_temp='awk "{ printf \"%.1f°C\\n\", \$1/1000 }" /sys/bus/wmi/drivers/acer-wmi-battery/temperature'
 ```
 
 This repository also provides small helper scripts that automatically discover the correct sysfs node:
