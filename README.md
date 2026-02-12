@@ -402,6 +402,40 @@ sudo bash examples/charge_full_then_limit_and_shutdown.sh --allow-on-battery
 sudo bash examples/charge_full_then_limit_and_shutdown.sh --dry-run
 ```
 
+#### Full battery + power status report
+
+If you want a single command that prints a consolidated view of what the kernel exposes about your battery and
+power sources, use:
+
+```bash
+bash examples/battery_full_status.sh
+```
+
+This script reads from two places:
+
+- `/sys/class/power_supply/*` (generic Linux power-supply interface)
+- `/sys/bus/wmi/drivers/acer-wmi-battery/*` (acer-wmi-battery driver interface)
+
+It will attempt to show (when your hardware/kernel exposes it):
+
+- Battery state (`BAT*`): `status`, `capacity`, voltage/current/power
+- Battery capacity vs design/theoretical:
+  - `energy_full` vs `energy_full_design` (Wh), or
+  - `charge_full` vs `charge_full_design` (Ah)
+- AC adapter state (`AC*` / `ADP*`): typically an `online` indicator
+- USB-C / Power Delivery state (`ucsi-source-psy-*`): USB-C PD power-source nodes from the kernel UCSI stack
+- acer-wmi-battery: `health_mode`, `calibration_mode`, and battery `temperature` (if present)
+
+Note: entries like `ucsi-source-psy-usbc000:001` do not necessarily mean the battery is charging over USB-C.
+They represent a USB-C/PD power source object. To confirm whether it is actively supplying power, check its
+`online` field and compare with your battery `status`.
+
+For troubleshooting, you can dump all readable attributes for detected `BAT*`/`AC*`/`ADP*`/UCSI nodes:
+
+```bash
+bash examples/battery_full_status.sh --all
+```
+
 ### Troubleshooting
 
 If the module fails to load, try the following steps:
