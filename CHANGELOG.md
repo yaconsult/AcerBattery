@@ -1,5 +1,15 @@
 # Changelog
 
+## Recent changes
+
+- Example scripts now show time-to-full / time-to-empty (ETA) when available, with a derived fallback estimate.
+- Added portable example docs under `examples/README.md` and shortened the root README accordingly.
+- Added calibration mode helpers (`calibration_mode.sh` + `find_calibration_mode_node.sh`) with safe defaults and documentation.
+- Added read-only utility examples:
+  - `watch_battery_status.sh` (refreshing terminal view)
+  - `battery_history_logger.sh` (CSV/TSV logger)
+- Documented ways to fetch only the `examples/` folder (ZIP download, sparse-checkout, `svn export`).
+
 ## [1.2.0] - 2026-01-28
 
 ### Added
