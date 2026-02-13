@@ -101,6 +101,31 @@ read_int_file() {
   echo "$val"
 }
 
+read_num_file() {
+  local path="$1"
+  local val
+  val=$(cat "$path" 2>/dev/null || true)
+  if ! [[ "$val" =~ ^-?[0-9]+$ ]]; then
+    return 1
+  fi
+  echo "$val"
+}
+
+fmt_uv() {
+  local v="$1"
+  awk -v x="$v" 'BEGIN { printf "%.3fV", x/1000000 }'
+}
+
+fmt_ua() {
+  local v="$1"
+  awk -v x="$v" 'BEGIN { printf "%.3fA", x/1000000 }'
+}
+
+fmt_uw() {
+  local v="$1"
+  awk -v x="$v" 'BEGIN { printf "%.3fW", x/1000000 }'
+}
+
 read_temp_c() {
   local path="$1"
   local val
@@ -149,6 +174,11 @@ CAPACITY_PATH=$(find_battery_capacity_path) || {
   exit 1
 }
 
+BATTERY_DIR="$(dirname "$CAPACITY_PATH")"
+CURRENT_NOW_PATH="${BATTERY_DIR}/current_now"
+VOLTAGE_NOW_PATH="${BATTERY_DIR}/voltage_now"
+POWER_NOW_PATH="${BATTERY_DIR}/power_now"
+
 AC_ONLINE_PATH=$(find_ac_online_path || true)
 if [ -n "${AC_ONLINE_PATH:-}" ]; then
   if [ "$(read_int_file "$AC_ONLINE_PATH" || echo 0)" -eq 0 ]; then
@@ -186,8 +216,39 @@ while true; do
     TEMP_DISPLAY=$(read_temp_c "$TEMP_PATH" 2>/dev/null || true)
   fi
 
-  if [ -n "${TEMP_DISPLAY:-}" ]; then
-    echo "Current charge: ${CURRENT}% (temp: ${TEMP_DISPLAY})"
+  CURRENT_NOW_DISPLAY=""
+  VOLTAGE_NOW_DISPLAY=""
+  POWER_NOW_DISPLAY=""
+
+  if [ -f "$CURRENT_NOW_PATH" ]; then
+    CURRENT_NOW_RAW=$(read_num_file "$CURRENT_NOW_PATH" 2>/dev/null || true)
+    if [ -n "${CURRENT_NOW_RAW:-}" ]; then
+      CURRENT_NOW_DISPLAY="$(fmt_ua "$CURRENT_NOW_RAW")"
+    fi
+  fi
+
+  if [ -f "$VOLTAGE_NOW_PATH" ]; then
+    VOLTAGE_NOW_RAW=$(read_num_file "$VOLTAGE_NOW_PATH" 2>/dev/null || true)
+    if [ -n "${VOLTAGE_NOW_RAW:-}" ]; then
+      VOLTAGE_NOW_DISPLAY="$(fmt_uv "$VOLTAGE_NOW_RAW")"
+    fi
+  fi
+
+  if [ -f "$POWER_NOW_PATH" ]; then
+    POWER_NOW_RAW=$(read_num_file "$POWER_NOW_PATH" 2>/dev/null || true)
+    if [ -n "${POWER_NOW_RAW:-}" ]; then
+      POWER_NOW_DISPLAY="$(fmt_uw "$POWER_NOW_RAW")"
+    fi
+  fi
+
+  EXTRA=""
+  [ -n "${TEMP_DISPLAY:-}" ] && EXTRA+=" temp:${TEMP_DISPLAY}"
+  [ -n "${CURRENT_NOW_DISPLAY:-}" ] && EXTRA+=" I:${CURRENT_NOW_DISPLAY}"
+  [ -n "${VOLTAGE_NOW_DISPLAY:-}" ] && EXTRA+=" V:${VOLTAGE_NOW_DISPLAY}"
+  [ -n "${POWER_NOW_DISPLAY:-}" ] && EXTRA+=" P:${POWER_NOW_DISPLAY}"
+
+  if [ -n "${EXTRA:-}" ]; then
+    echo "Current charge: ${CURRENT}% (${EXTRA# })"
   else
     echo "Current charge: ${CURRENT}%"
   fi
