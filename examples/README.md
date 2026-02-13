@@ -18,6 +18,12 @@ chmod +x examples/*.sh
 # One-shot status dump of battery/power/temps
 bash examples/battery_full_status.sh
 
+# Watch a refreshing view (similar to a battery widget, but in terminal)
+bash examples/watch_battery_status.sh --interval 10
+
+# Log to a CSV/TSV file for later analysis
+bash examples/battery_history_logger.sh --interval 30 --output battery.csv
+
 # Read temperature with sysfs node auto-discovery
 bash examples/battery_temperature.sh
 
@@ -43,6 +49,8 @@ After that, you can run (examples):
 
 ```bash
 battery_full_status.sh
+watch_battery_status.sh
+battery_history_logger.sh --output battery.csv
 battery_temperature.sh
 sudo charge_limit_on.sh
 sudo charge_full_then_limit_and_shutdown.sh --no-shutdown
@@ -89,6 +97,10 @@ install individual scripts elsewhere, keep the corresponding helper scripts in t
   - `charge_full_then_limit_and_shutdown.sh`
     - Runs without helpers, but will display temperature if `find_temperature_node.sh` is present
   - `battery_full_status.sh`
+    - Runs without helpers, but will include acer-wmi-battery temperature if `find_temperature_node.sh` is present
+  - `watch_battery_status.sh`
+    - Runs without helpers, but will include acer-wmi-battery temperature if `find_temperature_node.sh` is present
+  - `battery_history_logger.sh`
     - Runs without helpers, but will include acer-wmi-battery temperature if `find_temperature_node.sh` is present
 
 If you copy scripts to another machine, copy these together:
