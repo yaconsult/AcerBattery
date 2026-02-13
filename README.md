@@ -206,6 +206,13 @@ The role includes automatic error recovery:
 
 This repository is primarily an Ansible role. The Python tooling is used for tests and linting.
 
+The test suite is intended for development changes to the role and repository content (task files, templates,
+packaging, and example script sanity checks such as shell syntax). It does **not** validate hardware-specific
+behavior on your laptop.
+
+For runtime issues (module not loading, missing sysfs nodes, Secure Boot issues, etc.), use the
+Troubleshooting section below.
+
 1. Create and activate a virtual environment:
 
 ```bash
@@ -352,6 +359,43 @@ If you want to see which sysfs node was detected on your system:
 ```bash
 bash examples/find_health_mode_node.sh
 ```
+
+#### Example script dependencies
+
+Some scripts in `examples/` are standalone, while others intentionally call the small `find_*_node.sh` helpers to
+auto-detect the correct sysfs path on your system.
+
+In general, you do **not** need to add these scripts to your `PATH`. The scripts that call helpers resolve them
+relative to their own directory, so running them as `bash examples/<script>.sh` from the repository root works as
+documented. If you copy or install individual scripts elsewhere, keep the corresponding helper scripts in the
+same directory.
+
+- **Standalone helpers (safe to run directly)**
+  - `examples/find_health_mode_node.sh` (prints a `health_mode` sysfs path)
+  - `examples/find_temperature_node.sh` (prints a `temperature` sysfs path)
+
+- **Scripts that depend on helper(s)**
+  - `examples/charge_limit_on.sh` and `examples/charge_limit_off.sh`
+    - Call `examples/find_health_mode_node.sh`
+  - `examples/battery_temperature.sh`
+    - Calls `examples/find_temperature_node.sh`
+
+- **Scripts that are standalone but can use helpers opportunistically**
+  - `examples/charge_full_then_limit_and_shutdown.sh`
+    - Runs without helpers, but will display temperature if `examples/find_temperature_node.sh` is present
+  - `examples/battery_full_status.sh`
+    - Runs without helpers, but will include acer-wmi-battery temperature if `examples/find_temperature_node.sh` is present
+
+If you copy scripts to another machine, copy these together:
+
+- **Charge limit toggles**
+  - `charge_limit_on.sh`
+  - `charge_limit_off.sh`
+  - `find_health_mode_node.sh`
+
+- **Temperature reader**
+  - `battery_temperature.sh`
+  - `find_temperature_node.sh`
 
 To (re)load the module, prefer `modprobe` (works with DKMS-installed modules) over `insmod`:
 
