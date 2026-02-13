@@ -85,6 +85,70 @@ fmt_uw() {
   awk -v x="$v" 'BEGIN { printf "%.3f W", x/1000000 }'
 }
 
+fmt_seconds_hhmm() {
+  local s="$1"
+  awk -v x="$s" 'BEGIN {
+    if (x < 0) { x = -x }
+    h = int(x/3600)
+    m = int((x - h*3600)/60)
+    printf "%02dh%02dm", h, m
+  }'
+}
+
+estimate_eta_seconds() {
+  local status="$1"
+  local energy_now="$2"
+  local energy_full="$3"
+  local power_now="$4"
+  local charge_now="$5"
+  local charge_full="$6"
+  local current_now="$7"
+
+  if [[ "$status" == "Charging" ]]; then
+    if [[ -n "${energy_now:-}" && -n "${energy_full:-}" && -n "${power_now:-}" && "$power_now" != "0" ]]; then
+      awk -v en="$energy_now" -v ef="$energy_full" -v pw="$power_now" 'BEGIN {
+        rem = ef - en
+        if (rem < 0) rem = 0
+        if (pw == 0) { exit 1 }
+        printf "%d", int((rem / pw) * 3600)
+      }'
+      return 0
+    fi
+
+    if [[ -n "${charge_now:-}" && -n "${charge_full:-}" && -n "${current_now:-}" && "$current_now" != "0" ]]; then
+      awk -v cn="$charge_now" -v cf="$charge_full" -v cur="$current_now" 'BEGIN {
+        rem = cf - cn
+        if (rem < 0) rem = 0
+        if (cur == 0) { exit 1 }
+        printf "%d", int((rem / cur) * 3600)
+      }'
+      return 0
+    fi
+  fi
+
+  if [[ "$status" == "Discharging" ]]; then
+    if [[ -n "${energy_now:-}" && -n "${power_now:-}" && "$power_now" != "0" ]]; then
+      awk -v en="$energy_now" -v pw="$power_now" 'BEGIN {
+        if (en < 0) en = 0
+        if (pw == 0) { exit 1 }
+        printf "%d", int((en / pw) * 3600)
+      }'
+      return 0
+    fi
+
+    if [[ -n "${charge_now:-}" && -n "${current_now:-}" && "$current_now" != "0" ]]; then
+      awk -v cn="$charge_now" -v cur="$current_now" 'BEGIN {
+        if (cn < 0) cn = 0
+        if (cur == 0) { exit 1 }
+        printf "%d", int((cn / cur) * 3600)
+      }'
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 fmt_temp_mdegc() {
   local v="$1"
   awk -v x="$v" 'BEGIN { printf "%.1f°C", x/1000 }'
@@ -182,6 +246,18 @@ print_power_supply_device() {
   [[ -n "${current_now:-}" ]] && echo "current_now: $(fmt_ua "$current_now")"
   [[ -n "${power_now:-}" ]] && echo "power_now: $(fmt_uw "$power_now")"
 
+  local time_to_full_now time_to_empty_now eta_seconds
+  time_to_full_now="$(read_int "$dev_path/time_to_full_now" 2>/dev/null || true)"
+  time_to_empty_now="$(read_int "$dev_path/time_to_empty_now" 2>/dev/null || true)"
+
+  if [[ -n "${time_to_full_now:-}" ]]; then
+    echo "time_to_full_now: $(fmt_seconds_hhmm "$time_to_full_now") (${time_to_full_now}s)"
+  fi
+
+  if [[ -n "${time_to_empty_now:-}" ]]; then
+    echo "time_to_empty_now: $(fmt_seconds_hhmm "$time_to_empty_now") (${time_to_empty_now}s)"
+  fi
+
   local energy_now energy_full energy_full_design
   energy_now="$(read_int "$dev_path/energy_now" 2>/dev/null || true)"
   energy_full="$(read_int "$dev_path/energy_full" 2>/dev/null || true)"
@@ -207,6 +283,17 @@ print_power_supply_device() {
     [[ -n "${charge_full_design:-}" ]] && echo "charge_full_design: $(fmt_uah "$charge_full_design")"
     if [[ -n "${charge_full:-}" && -n "${charge_full_design:-}" ]]; then
       echo "full_vs_design: $(fmt_ratio_pct "$charge_full" "$charge_full_design")"
+    fi
+  fi
+
+  if [[ -z "${time_to_full_now:-}" && -z "${time_to_empty_now:-}" && -n "${status:-}" ]]; then
+    eta_seconds="$(estimate_eta_seconds "$status" "$energy_now" "$energy_full" "$power_now" "$charge_now" "$charge_full" "$current_now" 2>/dev/null || true)"
+    if [[ -n "${eta_seconds:-}" ]]; then
+      if [[ "$status" == "Charging" ]]; then
+        echo "eta_to_full_estimate: $(fmt_seconds_hhmm "$eta_seconds") (${eta_seconds}s)"
+      elif [[ "$status" == "Discharging" ]]; then
+        echo "eta_to_empty_estimate: $(fmt_seconds_hhmm "$eta_seconds") (${eta_seconds}s)"
+      fi
     fi
   fi
 

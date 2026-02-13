@@ -4,6 +4,10 @@
 
 This Ansible role installs and configures the [Acer WMI Battery kernel module](https://github.com/frederik-h/acer-wmi-battery) for Acer laptops. The module enables battery threshold control on supported Acer laptops.
 
+Note: multiple similarly named Acer battery/charge-limit projects exist online. This repository (role + examples)
+specifically targets Frederik Himpe's upstream driver:
+https://github.com/frederik-h/acer-wmi-battery
+
 ## TL;DR
 
 Install (from this repo):
@@ -40,6 +44,10 @@ sudo bash examples/charge_limit_off.sh
 ```
 
 If something fails to load/work (Secure Boot, missing sysfs nodes, etc.), jump to the Troubleshooting section.
+
+These `examples/*.sh` scripts can be used even if you do not use this Ansible role, as long as the upstream
+`frederik-h/acer-wmi-battery` module is installed and loaded and the expected sysfs nodes exist. The convenience
+command `acer-battery-status` (and the `status` symlink) is installed by this role under `/usr/local/bin/`.
 
 ## About the Module
 
@@ -499,6 +507,7 @@ capacity: 72%
 voltage_now: 11.412 V
 current_now: 1.216 A
 power_now: 13.871 W
+time_to_full_now: 00h45m (2700s)
 energy_full: 46.120 Wh
 energy_full_design: 57.200 Wh
 full_vs_design: 80.6%
@@ -510,8 +519,8 @@ full_vs_design: 80.6%
 Battery capacity source: /sys/class/power_supply/BAT0/capacity
 AC online source: /sys/class/power_supply/AC/online
 Disabling charge limit (health_mode=0) until 100%...
-Current charge: 72% (temp:35.4°C I:1.216A V:11.412V P:13.871W)
-Current charge: 73% (temp:35.7°C I:1.108A V:11.425V P:12.662W)
+Current charge: 72% (temp:35.4°C I:1.216A V:11.412V P:13.871W ETA_to_full:00h45m)
+Current charge: 73% (temp:35.7°C I:1.108A V:11.425V P:12.662W ETA_to_full:00h43m)
 ...
 Reached target (100%). Enabling charge limit (health_mode=1).
 Done (shutdown skipped).
