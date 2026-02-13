@@ -437,6 +437,21 @@ If you copy scripts to another machine, copy these together:
   - `battery_temperature.sh`
   - `find_temperature_node.sh`
 
+#### Which examples require sudo?
+
+Some example scripts write to sysfs nodes (or invoke `shutdown`) and therefore must be run with `sudo`.
+
+- **Requires sudo (writes / privileged actions)**
+  - `examples/charge_limit_on.sh` (writes `health_mode=1`)
+  - `examples/charge_limit_off.sh` (writes `health_mode=0`)
+  - `examples/charge_full_then_limit_and_shutdown.sh` (writes `health_mode` and may run `shutdown`)
+
+- **No sudo required (read-only)**
+  - `examples/find_health_mode_node.sh`
+  - `examples/find_temperature_node.sh`
+  - `examples/battery_temperature.sh`
+  - `examples/battery_full_status.sh`
+
 To (re)load the module, prefer `modprobe` (works with DKMS-installed modules) over `insmod`:
 
 ```bash
