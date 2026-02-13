@@ -8,6 +8,29 @@ You do **not** need to use the Ansible role from this repository to use these sc
 
 ## Quickstart
 
+### Getting only the `examples/` folder
+
+Git does not support cloning only a subdirectory with a single `git clone`.
+
+If you already have the upstream driver installed and only want these scripts, you can:
+
+- Download the repository ZIP from GitHub and keep only the `examples/` directory.
+- Use git sparse-checkout (checks out only `examples/` into your working tree):
+
+```bash
+git clone --filter=blob:none --no-checkout https://github.com/yaconsult/AcerBattery.git
+cd AcerBattery
+git sparse-checkout init --cone
+git sparse-checkout set examples
+git checkout
+```
+
+- Use `svn export` (downloads only the directory contents, no git metadata):
+
+```bash
+svn export https://github.com/yaconsult/AcerBattery/trunk/examples
+```
+
 ### Option A: run directly from the `examples/` folder
 
 From the repository root:
