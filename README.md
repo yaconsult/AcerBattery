@@ -537,6 +537,11 @@ If the module fails to load, try the following steps:
 
 The role configures DKMS to automatically rebuild the module when you update your kernel.
 
+Why this is needed: `acer-wmi-battery` is an out-of-tree kernel module. Kernel modules are built against a
+specific kernel build/ABI (and its headers). After a kernel update, the previously built `.ko` may no longer
+match the running kernel ("version magic" mismatch) and can fail to load, so it must be rebuilt for the new
+kernel.
+
 Additionally, it installs OS-specific hooks as a fallback:
 
 - Debian/Ubuntu: `/etc/kernel/postinst.d/99-acer-wmi-battery`
