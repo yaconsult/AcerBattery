@@ -76,6 +76,9 @@ If your system exposes the `temperature` node under a different sysfs path, you 
 bash examples/find_temperature_node.sh
 ```
 
+These `find_*_node.sh` helpers first try a few common sysfs locations and then fall back to a broader scan under
+`/sys` to improve portability across different kernel versions and laptop models.
+
 If you prefer, you can use the helper scripts which automatically discover the correct node and write with sudo:
 
 ```bash
