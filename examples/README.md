@@ -75,12 +75,15 @@ install individual scripts elsewhere, keep the corresponding helper scripts in t
 - **Standalone helpers (safe to run directly)**
   - `find_health_mode_node.sh` (prints a `health_mode` sysfs path)
   - `find_temperature_node.sh` (prints a `temperature` sysfs path)
+  - `find_calibration_mode_node.sh` (prints a `calibration_mode` sysfs path)
 
 - **Scripts that depend on helper(s)**
   - `charge_limit_on.sh` and `charge_limit_off.sh`
     - Call `find_health_mode_node.sh`
   - `battery_temperature.sh`
     - Calls `find_temperature_node.sh`
+  - `calibration_mode.sh`
+    - Calls `find_calibration_mode_node.sh`
 
 - **Scripts that are standalone but can use helpers opportunistically**
   - `charge_full_then_limit_and_shutdown.sh`
@@ -106,6 +109,7 @@ Some example scripts write to sysfs nodes (or invoke `shutdown`) and therefore m
 - **Requires sudo (writes / privileged actions)**
   - `charge_limit_on.sh` (writes `health_mode=1`)
   - `charge_limit_off.sh` (writes `health_mode=0`)
+  - `calibration_mode.sh` (writes `calibration_mode`)
   - `charge_full_then_limit_and_shutdown.sh` (writes `health_mode` and may run `shutdown`)
 
 - **No sudo required (read-only)**
@@ -124,6 +128,48 @@ Some kernels expose:
 When present, `battery_full_status.sh` prints them and `charge_full_then_limit_and_shutdown.sh` shows an ETA during
 polling. If those fields are not present, the scripts will fall back to a derived estimate when enough power/energy
 (or current/charge) fields are available.
+
+## Calibration mode
+
+The upstream driver exposes a `calibration_mode` sysfs control. Its purpose is to help recalibrate / improve the
+battery capacity reporting. In practice, this is mainly useful when battery percentage or reported full capacity is
+inaccurate.
+
+Calibration can take a long time and may affect charge/discharge behavior while running.
+
+Recommended guidelines:
+
+- Prefer running on AC power.
+- Monitor temperature and power state while it is running.
+- Make sure you know how to stop it.
+
+This repo provides two helpers:
+
+- `find_calibration_mode_node.sh` prints a usable sysfs path for `calibration_mode`.
+- `calibration_mode.sh` provides a safer interface:
+  - `status` (read current value)
+  - `start` (writes `1`, asks for confirmation unless `--yes` is passed)
+  - `stop` (writes `0`)
+
+Examples:
+
+```bash
+# Show current calibration mode state
+bash calibration_mode.sh status
+
+# Start (interactive confirmation)
+sudo bash calibration_mode.sh start
+
+# Start non-interactively (for automation)
+sudo bash calibration_mode.sh start --yes
+
+# Stop
+sudo bash calibration_mode.sh stop
+```
+
+For the authoritative calibration procedure and caveats, see upstream:
+
+https://github.com/frederik-h/acer-wmi-battery#calibration-mode
 
 ## Example output (will vary by hardware/kernel)
 

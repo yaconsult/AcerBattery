@@ -40,6 +40,7 @@ def test_example_script_dependencies_present() -> None:
         "charge_limit_on.sh": ["find_health_mode_node.sh"],
         "charge_limit_off.sh": ["find_health_mode_node.sh"],
         "battery_temperature.sh": ["find_temperature_node.sh"],
+        "calibration_mode.sh": ["find_calibration_mode_node.sh"],
     }
 
     for script_name, required in dependencies.items():
