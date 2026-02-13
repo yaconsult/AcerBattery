@@ -452,6 +452,71 @@ Some example scripts write to sysfs nodes (or invoke `shutdown`) and therefore m
   - `examples/battery_temperature.sh`
   - `examples/battery_full_status.sh`
 
+#### Installing the example scripts into your PATH (optional)
+
+If you use these scripts often, you can copy them into a directory that is on your `PATH`.
+
+Recommended approach (keep the scripts together so helper dependencies keep working):
+
+```bash
+mkdir -p ~/.local/lib/acer-battery-examples
+cp -a examples/*.sh ~/.local/lib/acer-battery-examples/
+chmod +x ~/.local/lib/acer-battery-examples/*.sh
+
+mkdir -p ~/.local/bin
+ln -sf ~/.local/lib/acer-battery-examples/* ~/.local/bin/
+```
+
+After that, you can run (examples):
+
+```bash
+battery_full_status.sh
+battery_temperature.sh
+sudo charge_limit_on.sh
+sudo charge_full_then_limit_and_shutdown.sh --no-shutdown
+```
+
+Note: scripts that depend on helper scripts (for example `charge_limit_on.sh` calling
+`find_health_mode_node.sh`) assume the helpers live in the same directory. The symlink-based approach above
+preserves that.
+
+#### Example output (will vary by hardware/kernel)
+
+`battery_full_status.sh`:
+
+```text
+Battery full status
+
+[acer-wmi-battery]
+health_mode: 1
+calibration_mode: 0
+temperature: 35.4°C (35400 m°C)
+
+[BAT0]
+type: Battery
+status: Charging
+capacity: 72%
+voltage_now: 11.412 V
+current_now: 1.216 A
+power_now: 13.871 W
+energy_full: 46.120 Wh
+energy_full_design: 57.200 Wh
+full_vs_design: 80.6%
+```
+
+`charge_full_then_limit_and_shutdown.sh`:
+
+```text
+Battery capacity source: /sys/class/power_supply/BAT0/capacity
+AC online source: /sys/class/power_supply/AC/online
+Disabling charge limit (health_mode=0) until 100%...
+Current charge: 72% (temp:35.4°C I:1.216A V:11.412V P:13.871W)
+Current charge: 73% (temp:35.7°C I:1.108A V:11.425V P:12.662W)
+...
+Reached target (100%). Enabling charge limit (health_mode=1).
+Done (shutdown skipped).
+```
+
 To (re)load the module, prefer `modprobe` (works with DKMS-installed modules) over `insmod`:
 
 ```bash
