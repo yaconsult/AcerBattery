@@ -4,6 +4,43 @@
 
 This Ansible role installs and configures the [Acer WMI Battery kernel module](https://github.com/frederik-h/acer-wmi-battery) for Acer laptops. The module enables battery threshold control on supported Acer laptops.
 
+## TL;DR
+
+Install (from this repo):
+
+```bash
+ansible-playbook -i localhost, -c local -K site.yml
+```
+
+Most common commands (once the module is loaded):
+
+```bash
+# Enable 80% charge limit
+echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
+
+# Disable 80% charge limit
+echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
+
+# Battery temperature (millidegree C)
+cat /sys/bus/wmi/drivers/acer-wmi-battery/temperature
+```
+
+Portable example scripts (recommended):
+
+```bash
+# One-shot status dump of battery/power/temps
+bash examples/battery_full_status.sh
+
+# Read temperature with sysfs node auto-discovery
+bash examples/battery_temperature.sh
+
+# Toggle charge limit with sysfs node auto-discovery
+sudo bash examples/charge_limit_on.sh
+sudo bash examples/charge_limit_off.sh
+```
+
+If something fails to load/work (Secure Boot, missing sysfs nodes, etc.), jump to the Troubleshooting section.
+
 ## About the Module
 
 This role installs and configures the [acer-wmi-battery](https://github.com/frederik-h/acer-wmi-battery) kernel module, created by [Frederik Himpe](https://github.com/frederik-h). The module provides battery health control features for Acer laptops:
