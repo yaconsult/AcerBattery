@@ -293,6 +293,10 @@ while true; do
   ETA_DISPLAY=""
   ETA_LABEL=""
 
+  CURRENT_NOW_RAW=""
+  VOLTAGE_NOW_RAW=""
+  POWER_NOW_RAW=""
+
   if [ -f "$CURRENT_NOW_PATH" ]; then
     CURRENT_NOW_RAW=$(read_num_file "$CURRENT_NOW_PATH" 2>/dev/null || true)
     if [ -n "${CURRENT_NOW_RAW:-}" ]; then
