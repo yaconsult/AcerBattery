@@ -70,12 +70,16 @@
   register: source_dir
 
 - name: Check for conflicting DKMS modules
-  ansible.builtin.shell: dkms status | grep acer-wmi-battery | grep -v "{{ acer_battery_version }}" || true
+  ansible.builtin.shell: |
+    set -o pipefail
+    dkms status | grep acer-wmi-battery | grep -v "{{ acer_battery_version }}" || true
   register: conflicting_modules
   changed_when: false
 
 - name: Remove conflicting DKMS modules
-  ansible.builtin.shell: dkms remove acer-wmi-battery/$(echo "{{ item }}" | awk '{print $1}' | cut -d'/' -f2 | cut -d',' -f1) --all
+  ansible.builtin.shell: |
+    set -o pipefail
+    dkms remove acer-wmi-battery/$(echo "{{ item }}" | awk '{print $1}' | cut -d'/' -f2 | cut -d',' -f1) --all
   with_items: "{{ conflicting_modules.stdout_lines }}"
   when: conflicting_modules.stdout_lines | length > 0
   register: removed_modules
@@ -84,7 +88,9 @@
 
 - name: Get real home directory
   ansible.builtin.shell:
-    cmd: "getent passwd $SUDO_USER | cut -d: -f6"
+    cmd: |
+      set -o pipefail
+      getent passwd "$SUDO_USER" | cut -d: -f6
   register: home_dir
   changed_when: false
   become: true
@@ -117,6 +123,7 @@
     cmd: "rsync -av --exclude='.git' /tmp/acer-wmi-battery/ {{ acer_battery_source_dir }}/"
   when: git_clone is defined and git_clone.changed
   register: move_repo
+  changed_when: true
   become: true
 
 - name: Clean up temporary repository
@@ -211,11 +218,10 @@
     mode: '0755'
   become: true
 
-- name: Install module loading configuration
-  ansible.builtin.template:
-    src: modules-load.conf.j2
-    dest: /etc/modules-load.d/acer-wmi-battery.conf
-    mode: '0644'
+- name: Remove modules-load.d configuration (systemd-modules-load can fail with stale DKMS artifacts)
+  ansible.builtin.file:
+    path: /etc/modules-load.d/acer-wmi-battery.conf
+    state: absent
   become: true
 
 - name: Install systemd service for module loading
@@ -231,12 +237,13 @@
     dest: "{{ acer_battery_source_dir }}/Makefile"
     content: |
       obj-m := acer-wmi-battery.o
-          
+      .RECIPEPREFIX := >
+
       all:
-      	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
-      
+      >make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+
       clean:
-      	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+      >make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
     owner: root
     group: root
     mode: '0644'
@@ -258,7 +265,8 @@
     dest: "{{ acer_battery_source_dir }}/acer-wmi-battery.c.backup"
     remote_src: true
     force: false
-  when: source_code.stat.exists == true
+    mode: '0644'
+  when: source_code.stat.exists
   become: true
 
 - name: Install DKMS configuration
@@ -336,13 +344,14 @@
     src: "{{ acer_battery_source_dir }}/acer-wmi-battery.c.backup"
     dest: "{{ acer_battery_source_dir }}/acer-wmi-battery.c"
     remote_src: true
-  when: module_stat.stat.exists == false and source_code.stat.exists == true
+    mode: '0644'
+  when: not module_stat.stat.exists and source_code.stat.exists
   become: true
 
 - name: Fail if module build failed and no backup available
   ansible.builtin.fail:
     msg: "Module build failed and no backup is available to restore from"
-  when: module_stat.stat.exists == false and source_code.stat.exists == false
+  when: not module_stat.stat.exists and not source_code.stat.exists
 
 - name: Load module
   ansible.builtin.shell: |
@@ -350,7 +359,7 @@
       echo "Module loaded successfully"
       exit 0
     fi
-    
+
     current_kernel=$(uname -r)
     if (command -v journalctl >/dev/null 2>&1 && journalctl -k -b --no-pager 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel") || \
        (dmesg 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"); then
@@ -374,6 +383,7 @@
 
 - name: Check kernel module compatibility
   ansible.builtin.shell: |
+    set -o pipefail
     if command -v journalctl >/dev/null 2>&1; then
       journalctl -k -b --no-pager 2>/dev/null | grep -i 'acer_wmi_battery' || true
     else
@@ -412,7 +422,7 @@
     msg: |
       The Acer WMI Battery module has been installed but could not be loaded.
       This may be because the module was built for a different kernel version or your hardware is not compatible.
-      
+
       Troubleshooting steps:
       1. Try rebooting your system and then run: sudo modprobe acer_wmi_battery
       2. Check kernel logs for errors: sudo journalctl -k -b | grep -i 'acer_wmi_battery'
@@ -430,6 +440,6 @@
       4. Select "Continue"
       5. Select "Yes" to enroll the key
       6. Select "Reboot"
-  when: 
+  when:
     - signing_required
     - mok_key is changed

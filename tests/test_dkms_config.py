@@ -53,13 +53,30 @@ def test_module_autoload_configuration() -> None:
         if isinstance(task, dict) and task.get("ansible.builtin.template") is not None
     ]
 
-    modules_load_tasks = [
+    service_tasks = [
         task
         for task in template_tasks
         if task["ansible.builtin.template"].get("dest")
-        == "/etc/modules-load.d/acer-wmi-battery.conf"
+        == "/etc/systemd/system/acer-wmi-battery.service"
     ]
-    assert len(modules_load_tasks) == 1, "Should install modules-load.d config"
+    assert len(service_tasks) == 1, "Should install systemd service"
+
+    file_tasks = [
+        task
+        for task in tasks_content
+        if isinstance(task, dict) and task.get("ansible.builtin.file") is not None
+    ]
+
+    modules_load_absent_tasks = [
+        task
+        for task in file_tasks
+        if task["ansible.builtin.file"].get("path")
+        == "/etc/modules-load.d/acer-wmi-battery.conf"
+        and task["ansible.builtin.file"].get("state") == "absent"
+    ]
+    assert (
+        len(modules_load_absent_tasks) == 1
+    ), "Should remove modules-load.d config (avoid early-boot stale DKMS artifacts)"
 
 
 def test_kernel_install_hook_is_installed() -> None:

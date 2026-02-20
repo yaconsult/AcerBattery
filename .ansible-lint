@@ -1,0 +1,8 @@
+---
+# Focus on safety/correctness checks; ignore refactor-heavy stylistic rules for this repo.
+skip_list:
+  - var-naming[no-role-prefix]
+  - no-handler
+  - command-instead-of-module
+  - command-instead-of-shell
+  - yaml[line-length]

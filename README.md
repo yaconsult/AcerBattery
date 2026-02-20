@@ -65,7 +65,7 @@ This Ansible role focuses solely on automating the installation and configuratio
 - Automatic upstream repository updates
 - DKMS integration for kernel updates
 - Automatic module rebuilding when kernels are updated
-- Module autoloading configuration
+- Boot-time module loading via systemd service (with DKMS self-healing)
 - Comprehensive test suite
 - Full idempotency support
 - Automatic module signing for Secure Boot
@@ -319,7 +319,7 @@ The role needs sudo/become to:
 - Write and manage files under `/usr/src`
 - Run `dkms add/build/install/remove`
 - Install kernel update hooks under `/etc/kernel/` and `/etc/kernel/install.d/`
-- Configure auto-loading under `/etc/modules-load.d/` and systemd under `/etc/systemd/system/`
+- Configure automatic loading under systemd under `/etc/systemd/system/`
 - Load the kernel module (`modprobe`)
 
 Without sudo/become, you can still:
@@ -625,13 +625,11 @@ sudo tail -200 /var/log/acer-wmi-battery-kernel-install.log
 
 ### Module Loading
 
-The playbook configures the module to be loaded automatically at boot time using multiple methods for maximum reliability:
+The playbook configures the module to be loaded automatically at boot time using a dedicated systemd oneshot service:
 
-1. **Kernel Module Configuration**: Adds the module to `/etc/modules-load.d/acer-wmi-battery.conf` to be loaded by the kernel module loading system.
+1. **Systemd Service**: Installs `/etc/systemd/system/acer-wmi-battery.service`, which attempts to `modprobe` the module and, if that fails, rebuilds/reinstalls it for the running kernel using DKMS and retries.
 
-2. **Systemd Service**: Creates a systemd service at `/etc/systemd/system/acer-wmi-battery.service` that loads the module after the system has fully booted, ensuring it's loaded even if the kernel module loading system fails.
-
-This dual approach ensures that the module is loaded even if one method fails.
+This approach is intentionally used instead of `/etc/modules-load.d/` because early-boot module loading can hit stale DKMS artifacts after kernel updates (e.g., an `Exec format error` due to a vermagic mismatch). The systemd service runs later in boot and includes self-healing logic.
 
 If the module is not automatically rebuilt after a kernel update, you can check its status using the provided utility:
 

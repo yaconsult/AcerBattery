@@ -20,18 +20,15 @@ if lsmod | grep -q 'acer_wmi_battery'; then
 else
     echo "The acer_wmi_battery module is not loaded. Please ensure it is built and loaded using DKMS."
     
-    # Check if module loading configuration exists
-    if [ -f "/etc/modules-load.d/acer-wmi-battery.conf" ]; then
-        echo "\nModule loading configuration found. The module should load automatically at boot time."
-    else
-        echo "\nModule loading configuration not found. The module will not load automatically at boot time."
-        echo "Run the playbook again to add the module loading configuration."
-    fi
-    
     # Check systemd service status
     if systemctl is-enabled acer-wmi-battery.service &>/dev/null; then
         echo "\nSystemd service is enabled and should load the module at boot time."
         echo "Service status: $(systemctl is-active acer-wmi-battery.service)"
+    elif systemctl cat acer-wmi-battery.service &>/dev/null; then
+        echo "\nSystemd service is installed but not enabled."
+        echo "Enable it with: sudo systemctl enable --now acer-wmi-battery.service"
+    else
+        echo "\nSystemd service is not installed. Run the playbook again to install it."
     fi
     
     # Check DKMS status

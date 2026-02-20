@@ -18,12 +18,19 @@
 
 - name: Generate MOK keys if they don't exist
   ansible.builtin.command:
-    cmd: openssl req -new -x509 -newkey rsa:2048 -keyout {{ acer_battery_mok_key }} -out {{ acer_battery_mok_pub }} -nodes -days 36500 -subj "/CN=Acer Battery Module/"
+    cmd: >-
+      openssl req -new -x509 -newkey rsa:2048
+      -keyout {{ acer_battery_mok_key }}
+      -out {{ acer_battery_mok_pub }}
+      -nodes -days 36500
+      -subj "/CN=Acer Battery Module/"
   when: not mok_key.stat.exists
+  changed_when: true
   become: true
 
 - name: Generate DER certificate for MOK enrollment
   ansible.builtin.command:
     cmd: openssl x509 -outform der -in {{ acer_battery_mok_pub }} -out {{ acer_battery_mok_der }}
   when: not mok_der.stat.exists
+  changed_when: true
   become: true
