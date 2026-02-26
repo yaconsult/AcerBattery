@@ -175,7 +175,7 @@ but it is not required for loading.
 - Implemented automatic backup and recovery
 - Added module functionality verification
 - Added comprehensive error handling for DKMS operations
-- Fixed Makefile formatting for proper compilation
+- Fixed DKMS Makefile generation so builds target the intended kernel (respects `KERNELRELEASE`) and avoid kernel-update autoinstall failures
 
 ## Installation
 

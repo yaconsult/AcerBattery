@@ -233,17 +233,9 @@
   notify: enable_systemd_service
 
 - name: Create proper Makefile for kernel module
-  ansible.builtin.copy:
+  ansible.builtin.template:
+    src: Makefile.j2
     dest: "{{ acer_battery_source_dir }}/Makefile"
-    content: |
-      obj-m := acer-wmi-battery.o
-      .RECIPEPREFIX := >
-
-      all:
-      >make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
-
-      clean:
-      >make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
     owner: root
     group: root
     mode: '0644'

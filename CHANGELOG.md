@@ -10,6 +10,7 @@
   - `battery_history_logger.sh` (CSV/TSV logger)
 - Documented ways to fetch only the `examples/` folder (ZIP download, sparse-checkout, `svn export`).
 - Improved boot-time module load robustness by relying on `acer-wmi-battery.service` (self-healing DKMS rebuild/retry) instead of early-boot `/etc/modules-load.d`.
+- Fixed DKMS Makefile generation so kernel updates build/install correctly for the new kernel (respects `KERNELRELEASE`).
 
 ## [1.2.0] - 2026-01-28
 

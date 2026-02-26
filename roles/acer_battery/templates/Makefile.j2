@@ -1,0 +1,9 @@
+obj-m := acer-wmi-battery.o
+
+KDIR ?= /lib/modules/$(or $(KERNELRELEASE),$(shell uname -r))/build
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
