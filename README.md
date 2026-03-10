@@ -4,7 +4,7 @@
 
 This Ansible role installs and configures the [Acer WMI Battery kernel module](https://github.com/frederik-h/acer-wmi-battery) for Acer laptops. The module enables battery threshold control on supported Acer laptops.
 
-Note: multiple similarly named Acer battery/charge-limit projects exist online. This repository (role + examples)
+Note: multiple similarly named Acer battery/charge-limit projects exist online. This repository
 specifically targets Frederik Himpe's upstream driver:
 https://github.com/frederik-h/acer-wmi-battery
 
@@ -29,25 +29,14 @@ echo 0 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null
 cat /sys/bus/wmi/drivers/acer-wmi-battery/temperature
 ```
 
-Portable example scripts (recommended):
-
-```bash
-# One-shot status dump of battery/power/temps
-bash examples/battery_full_status.sh
-
-# Read temperature with sysfs node auto-discovery
-bash examples/battery_temperature.sh
-
-# Toggle charge limit with sysfs node auto-discovery
-sudo bash examples/charge_limit_on.sh
-sudo bash examples/charge_limit_off.sh
-```
+Portable utility scripts (status, charge limiting, temperature, logging) are available in a
+separate repository for users who don't need Ansible:
+[acer-battery-scripts](https://github.com/yaconsult/acer-battery-scripts)
 
 If something fails to load/work (Secure Boot, missing sysfs nodes, etc.), jump to the Troubleshooting section.
 
-These `examples/*.sh` scripts can be used even if you do not use this Ansible role, as long as the upstream
-`frederik-h/acer-wmi-battery` module is installed and loaded and the expected sysfs nodes exist. The convenience
-command `acer-battery-status` (and the `status` symlink) is installed by this role under `/usr/local/bin/`.
+The convenience command `acer-battery-status` (and the `acer-status` symlink) is installed by this role
+under `/usr/local/bin/`.
 
 ## About the Module
 
@@ -109,33 +98,12 @@ awk '{ printf "%.1f°C\n", $1/1000 }' /sys/bus/wmi/drivers/acer-wmi-battery/temp
 ```
 
 Note: the exact sysfs path for `health_mode` can differ across laptop models and kernels. If the paths above do
-not exist on your system, use the helper script in `examples/` to discover the correct node:
+not exist on your system, use the helper scripts from
+[acer-battery-scripts](https://github.com/yaconsult/acer-battery-scripts) to discover the correct node
+(`find_health_mode_node.sh`, `find_temperature_node.sh`).
 
-```bash
-bash examples/find_health_mode_node.sh
-```
-
-If your system exposes the `temperature` node under a different sysfs path, you can discover it with:
-
-```bash
-bash examples/find_temperature_node.sh
-```
-
-These `find_*_node.sh` helpers first try a few common sysfs locations and then fall back to a broader scan under
+Those `find_*_node.sh` helpers first try a few common sysfs locations and then fall back to a broader scan under
 `/sys` to improve portability across different kernel versions and laptop models.
-
-If you prefer, you can use the helper scripts which automatically discover the correct node and write with sudo:
-
-```bash
-sudo bash examples/charge_limit_on.sh
-sudo bash examples/charge_limit_off.sh
-```
-
-For temperature monitoring with automatic discovery:
-
-```bash
-bash examples/battery_temperature.sh
-```
 
 The health mode is particularly useful for laptops that are frequently plugged in, as limiting the maximum charge to 80% can significantly extend the battery's lifespan.
 
@@ -367,7 +335,8 @@ echo 1 | sudo tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode >/dev/null  
 ```
 
 Note: avoid `sudo echo 1 > /sys/.../health_mode` because the shell redirection (`>`) runs as your user and will
-usually fail with "Permission denied". Use `sudo tee` (as shown above) or the helper scripts in `examples/`.
+usually fail with "Permission denied". Use `sudo tee` (as shown above) or the helper scripts from
+[acer-battery-scripts](https://github.com/yaconsult/acer-battery-scripts).
 
 If your system exposes the control under a different sysfs path, these one-liners try both common locations:
 
@@ -395,27 +364,9 @@ alias battery_temp_raw='cat /sys/bus/wmi/drivers/acer-wmi-battery/temperature'
 alias battery_temp='awk "{ printf \"%.1f°C\\n\", \$1/1000 }" /sys/bus/wmi/drivers/acer-wmi-battery/temperature'
 ```
 
-This repository also provides small helper scripts that automatically discover the correct sysfs node:
-
-```bash
-sudo bash examples/charge_limit_on.sh
-sudo bash examples/charge_limit_off.sh
-```
-
-If you want to see which sysfs node was detected on your system:
-
-```bash
-bash examples/find_health_mode_node.sh
-```
-
-#### Example scripts
-
-The `examples/` directory contains portable scripts that work with the upstream
-`frederik-h/acer-wmi-battery` driver even if you do not use this Ansible role.
-
-Full documentation (dependencies, sudo requirements, installing into `PATH`, sample output):
-
-examples/README.md
+Standalone helper scripts that automatically discover the correct sysfs node are available in the
+[acer-battery-scripts](https://github.com/yaconsult/acer-battery-scripts) repository.
+Those scripts work with the upstream driver even if you do not use this Ansible role.
 
 ### Troubleshooting
 

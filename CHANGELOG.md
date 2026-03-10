@@ -2,6 +2,11 @@
 
 ## Recent changes
 
+### Moved
+- Extracted `examples/` directory to standalone repository: [acer-battery-scripts](https://github.com/yaconsult/acer-battery-scripts). Users who only need the utility scripts (without Ansible) can now clone that repo directly.
+- Updated all README references to point to the new repository.
+- Removed `test_examples_scripts.py` (tests now live in the new repo).
+
 ### Fixed (project analysis review)
 - Fixed module existence check using wrong hardcoded path (`/updates/dkms/`); now uses dynamic `find` to locate the module regardless of distro layout.
 - Fixed hardcoded `-v main` in Load module task; now uses `{{ acer_battery_version }}` consistently.
