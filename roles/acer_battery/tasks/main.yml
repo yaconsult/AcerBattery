@@ -86,15 +86,6 @@
   changed_when: removed_modules.rc == 0
   become: true
 
-- name: Get real home directory
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      getent passwd "$SUDO_USER" | cut -d: -f6
-  register: home_dir
-  changed_when: false
-  become: true
-
 - name: Remove temporary repository if it exists
   ansible.builtin.file:
     path: "/tmp/acer-wmi-battery"
@@ -186,7 +177,7 @@
 - name: Create symlink for status script
   ansible.builtin.file:
     src: /usr/local/bin/acer-battery-status
-    dest: /usr/local/bin/status
+    dest: /usr/local/bin/acer-status
     state: link
   become: true
 
@@ -314,22 +305,30 @@
   notify: rebuild_module
   become: true
 
-- name: Check if module exists
-  ansible.builtin.stat:
-    path: "/lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko"
-  register: module_stat
+- name: Locate installed module
+  ansible.builtin.shell: |
+    set -o pipefail
+    find /lib/modules/{{ ansible_kernel }} -name 'acer_wmi_battery.ko*' -o -name 'acer-wmi-battery.ko*' 2>/dev/null | head -1
+  register: module_find
+  changed_when: false
+  failed_when: false
+
+- name: Set module path fact
+  ansible.builtin.set_fact:
+    module_path: "{{ module_find.stdout | default('') }}"
+    module_exists: "{{ module_find.stdout | default('') | length > 0 }}"
 
 - name: Check module format
   ansible.builtin.command:
-    cmd: file /lib/modules/{{ ansible_kernel }}/updates/dkms/acer-wmi-battery.ko
+    cmd: "file {{ module_path }}"
   register: module_format
-  ignore_errors: true
+  when: module_exists
   changed_when: false
 
 - name: Debug module format
   ansible.builtin.debug:
     var: module_format.stdout
-  when: module_format is defined and module_format.rc == 0
+  when: module_exists and module_format is defined and module_format.rc == 0
 
 - name: Restore from backup if build failed
   ansible.builtin.copy:
@@ -337,13 +336,13 @@
     dest: "{{ acer_battery_source_dir }}/acer-wmi-battery.c"
     remote_src: true
     mode: '0644'
-  when: not module_stat.stat.exists and source_code.stat.exists
+  when: not module_exists and source_code.stat.exists
   become: true
 
 - name: Fail if module build failed and no backup available
   ansible.builtin.fail:
     msg: "Module build failed and no backup is available to restore from"
-  when: not module_stat.stat.exists and not source_code.stat.exists
+  when: not module_exists and not source_code.stat.exists
 
 - name: Load module
   ansible.builtin.shell: |
@@ -356,9 +355,9 @@
     if (command -v journalctl >/dev/null 2>&1 && journalctl -k -b --no-pager 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel") || \
        (dmesg 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"); then
       echo "Kernel version mismatch detected, attempting to rebuild for current kernel"
-      dkms uninstall -m acer-wmi-battery -v main -k "$current_kernel" || true
-      dkms build -m acer-wmi-battery -v main -k "$current_kernel" && \
-      dkms install -m acer-wmi-battery -v main -k "$current_kernel" && \
+      dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$current_kernel" || true
+      dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$current_kernel" && \
+      dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$current_kernel" && \
       modprobe acer_wmi_battery || modprobe acer-wmi-battery
     else
       echo "Module failed to load for unknown reasons"

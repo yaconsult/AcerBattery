@@ -17,9 +17,13 @@ dkms uninstall -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VER
 
 # Build and install the module for this kernel version
 # Always use --force to ensure a clean rebuild
-dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" --force && \
-dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION"
-
-echo "Module rebuild complete for kernel $KERNEL_VERSION"
+# Never fail the kernel install transaction; just log errors.
+if dkms build -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" --force; then
+    dkms install -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" || \
+        echo "WARNING: DKMS install failed for kernel $KERNEL_VERSION" >&2
+    echo "Module rebuild complete for kernel $KERNEL_VERSION"
+else
+    echo "WARNING: DKMS build failed for kernel $KERNEL_VERSION" >&2
+fi
 
 exit 0

@@ -7,4 +7,4 @@ AUTOINSTALL="yes"
 {% if signing_required %}
 POST_BUILD="./scripts/sign-modules.sh ${kernelver}"
 {% endif %}
-MAKE[0]="make"
+MAKE[0]="make KERNELRELEASE=${kernelver}"

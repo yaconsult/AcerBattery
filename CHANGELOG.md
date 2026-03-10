@@ -2,6 +2,28 @@
 
 ## Recent changes
 
+### Fixed (project analysis review)
+- Fixed module existence check using wrong hardcoded path (`/updates/dkms/`); now uses dynamic `find` to locate the module regardless of distro layout.
+- Fixed hardcoded `-v main` in Load module task; now uses `{{ acer_battery_version }}` consistently.
+- Fixed handlers (`rebuild_module`, `load_module`) missing `become: true` for privilege escalation.
+- Fixed DKMS `MAKE` directive to explicitly pass `KERNELRELEASE=${kernelver}` to avoid `uname -r` fallback during cross-kernel builds.
+- Fixed `sign-modules.sh.j2` using hardcoded `/var/lib/dkms/mok.*` paths; now uses `{{ acer_battery_mok_key }}` and `{{ acer_battery_mok_pub }}` template variables.
+- Fixed `kernel-postinst.j2` silently swallowing build/install failures; now logs warnings on error while still exiting 0 to not block kernel installs.
+- Fixed version inconsistencies across `galaxy.yml` (1.2.0), `pyproject.toml` (was 1.0.0), and README badge (was 1.1.0); all now 1.2.0.
+
+### Removed
+- Removed stale root-level `acer-wmi-battery.service` and `99-acer-wmi-battery` (authoritative versions live in `templates/`).
+- Removed orphaned `modules-load.conf.j2` template (no longer used since switch to systemd service).
+- Removed dead `Get real home directory` task (registered variable was never used).
+- Removed stale `[coverage:run]` and `[coverage:report]` sections from `tests/ansible.cfg` (belong in `pyproject.toml`).
+
+### Changed
+- Renamed `/usr/local/bin/status` symlink to `/usr/local/bin/acer-status` to avoid namespace collisions.
+- Renamed handlers to use uppercase names with `listen:` directives for ansible-lint compliance (production profile).
+- Added `set -o pipefail`, `changed_when`, and `failed_when` to handlers for ansible-lint safety compliance.
+- Added 11 new regression tests covering all fixes above; test suite now at 27 tests.
+
+### Previous
 - Example scripts now show time-to-full / time-to-empty (ETA) when available, with a derived fallback estimate.
 - Added portable example docs under `examples/README.md` and shortened the root README accordingly.
 - Added calibration mode helpers (`calibration_mode.sh` + `find_calibration_mode_node.sh`) with safe defaults and documentation.

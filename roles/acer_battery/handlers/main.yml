@@ -1,16 +1,21 @@
 ---
-- name: rebuild_module
+- name: Rebuild module
+  listen: rebuild_module
   ansible.builtin.command:
     cmd: "dkms build -m acer-wmi-battery -v {{ acer_battery_version }}"
+  become: true
+  changed_when: true
   notify: load_module
 
-- name: load_module
+- name: Load module
+  listen: load_module
   ansible.builtin.shell: |
+    set -o pipefail
     if modprobe acer_wmi_battery || modprobe acer-wmi-battery; then
       echo "Module loaded successfully"
       exit 0
     fi
-    
+
     current_kernel=$(uname -r)
     if (command -v journalctl >/dev/null 2>&1 && journalctl -k -b --no-pager 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel") || \
        (dmesg 2>/dev/null | grep -q "acer_wmi_battery: version magic.*should be.*$current_kernel"); then
@@ -23,9 +28,12 @@
       echo "Module failed to load for unknown reasons"
       exit 1
     fi
-  ignore_errors: true
+  become: true
+  changed_when: true
+  failed_when: false
 
-- name: enable_systemd_service
+- name: Enable systemd service
+  listen: enable_systemd_service
   ansible.builtin.systemd:
     name: acer-wmi-battery.service
     enabled: true
