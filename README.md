@@ -164,6 +164,21 @@ localhost ansible_connection=local
 ansible-playbook -i inventory site.yml
 ```
 
+### Expected Build Behavior
+
+When you run the Ansible role, you may notice the module is built **twice** for the same kernel. This is **expected and correct** behavior:
+
+1. **First build**: DKMS autoinstall during kernel package installation
+   - Triggered automatically by the kernel package's post-install scriptlet
+   - DKMS detects the kernel and builds/installs the module
+
+2. **Second build**: Ansible role's explicit rebuild
+   - The role forces a rebuild to ensure the deployed source tree and configuration match the role's current version
+   - This guarantees idempotency even if DKMS already auto-built the module
+   - Ensures any changes made by the role (signing hooks, updated `dkms.conf`, etc.) are immediately active
+
+Both builds should complete successfully with module signing and installation. This defensive approach ensures the system is in the exact state defined by the role, regardless of what DKMS may have done automatically.
+
 ## Configuration
 
 ### Repository Access
