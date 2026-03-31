@@ -420,6 +420,32 @@ This provides two layers of protection:
 
 After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
 
+#### Expected messages during kernel updates on Fedora
+
+When updating or removing kernels on Fedora, you may see many RPM warnings like:
+
+```
+[RPM] file /lib/modules/6.19.8-200.fc43.x86_64/kernel/drivers/...: remove failed: No such file or directory
+```
+
+**These warnings are harmless and unrelated to acer-wmi-battery.** They occur because RPM tries to remove optional kernel module directories that were never created. This is normal Fedora behavior.
+
+The acer-wmi-battery module will be cleanly removed by DKMS before the old kernel is uninstalled, and you'll see a message like:
+
+```
+dkms: removing module acer-wmi-battery/main for kernel 6.19.8-200.fc43.x86_64
+Module acer-wmi-battery/main for kernel 6.19.8-200.fc43.x86_64 (x86_64):
+Before uninstall, this module version was ACTIVE on this kernel.
+```
+
+To verify the module rebuilt successfully for the new kernel, check the log:
+
+```bash
+sudo tail -50 /var/log/acer-wmi-battery-kernel-install.log
+```
+
+You should see successful build, signing, and installation messages for each new kernel.
+
 ### Fedora release upgrades (DNF system-upgrade / GNOME/KDE Software)
 
 Fedora version upgrades typically install a new kernel and update DKMS/build tooling. In most cases the module will
