@@ -50,6 +50,42 @@
   changed_when: false
   ignore_errors: true
 
+- name: Check if bootloader files exist (Fedora/RHEL)
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /boot/efi/EFI/fedora/shimx64.efi
+    - /boot/efi/EFI/fedora/grubx64.efi
+  register: bootloader_files
+  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Fedora'
+  become: true
+
+- name: Verify bootloader packages are intact (Fedora/RHEL)
+  ansible.builtin.command:
+    cmd: rpm -V shim-x64 grub2-efi-x64
+  register: bootloader_verify
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Fedora'
+  become: true
+
+- name: Warn if bootloader files may be unsigned
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Bootloader verification detected potential issues.
+      If you have customized GRUB (e.g., custom background images), you may have replaced
+      signed bootloader binaries with unsigned ones, which will prevent Secure Boot from working.
+      
+      To fix this, reinstall the bootloader packages:
+        sudo dnf reinstall -y grub2-efi-x64 shim-x64
+      
+      Then regenerate GRUB config:
+        sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+  when:
+    - ansible_os_family == 'RedHat' or ansible_distribution == 'Fedora'
+    - bootloader_verify is defined
+    - bootloader_verify.rc != 0
+
 - name: Set signing required fact
   ansible.builtin.set_fact:
     signing_required: "{{ acer_battery_force_signing | default(false) or

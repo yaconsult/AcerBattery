@@ -583,6 +583,50 @@ status
  - **SELinux / lockdown troubleshooting:** with Secure Boot enabled, `dmesg` access may be restricted even
    for root. Prefer `sudo journalctl -k -b` to inspect kernel messages.
 
+#### Secure Boot fails to enable: GRUB customization conflict
+
+**Problem:** After enabling Secure Boot in BIOS/UEFI, the system fails to boot (red shield error or blank screen before GRUB appears).
+
+**Cause:** If you have customized GRUB (e.g., custom background images, themes, or manual GRUB file modifications), you may have inadvertently replaced **signed** bootloader binaries (`shimx64.efi`, `grubx64.efi`) with **unsigned** versions. Secure Boot requires the entire boot chain (firmware → shim → GRUB → kernel) to be signed with trusted keys.
+
+**Symptoms:**
+- System fails to boot when Secure Boot is enabled
+- Boot fails before reaching GRUB menu (at shim/GRUB loading stage)
+- Disabling Secure Boot allows normal boot
+
+**Recovery:**
+
+1. **Boot with Secure Boot disabled** (change in BIOS/UEFI settings)
+
+2. **Reinstall signed bootloader packages:**
+
+```bash
+sudo dnf reinstall -y grub2-efi-x64 shim-x64
+```
+
+3. **Regenerate GRUB configuration:**
+
+```bash
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+```
+
+4. **Verify bootloader files are intact:**
+
+```bash
+sudo rpm -V grub2-efi-x64 shim-x64
+```
+
+If this shows no output or only timestamp changes (`..?......`), the files are valid.
+
+5. **Reboot and enable Secure Boot in BIOS/UEFI**
+
+**Prevention:** This Ansible role now checks bootloader integrity and warns if GRUB/shim files may be unsigned. If you need to customize GRUB appearance while maintaining Secure Boot compatibility:
+- Use GRUB themes that don't require replacing bootloader binaries
+- Modify only `/boot/grub2/grub.cfg` or `/etc/default/grub` (configuration files, not binaries)
+- After any GRUB customization, verify with `sudo rpm -V grub2-efi-x64 shim-x64`
+
+**Note:** The acer-wmi-battery kernel module signing (MOK enrollment) is separate from the bootloader chain. Even with proper MOK enrollment, Secure Boot will fail if the bootloader itself is unsigned.
+
 #### Manual recovery: rebuild via Ansible
 
 If a kernel update was installed but the module was not rebuilt before shutdown/reboot (or if the module fails
