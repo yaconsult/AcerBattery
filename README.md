@@ -620,6 +620,54 @@ If this shows no output or only timestamp changes (`..?......`), the files are v
 
 5. **Reboot and enable Secure Boot in BIOS/UEFI**
 
+6. **If boot still fails with "Security Boot Fail" (Acer/Insyde BIOS specific):**
+
+Even with properly signed bootloaders, some Acer systems with Insyde BIOS require **manual approval** before trusting any bootloader. This is an extra security layer beyond standard Secure Boot.
+
+**Steps to manually trust the Fedora bootloader:**
+
+a. **Enter BIOS** (F2 during boot) and enter your **Supervisor password** (if set)
+
+b. **Navigate to:** `Security → Secure Boot → Select an UEFI file as trusted for executing`
+   - Menu path may vary; look for "Trust UEFI file" or "Add boot file to database"
+
+c. **Browse to:** `EFI → fedora → shimx64.efi`
+
+d. **Select it and give it a name** (e.g., "Fedora Shim")
+
+e. **Save and exit BIOS** (F10)
+
+**Note:** On some Acer BIOS versions, this menu is only accessible after setting a Supervisor password in BIOS Security settings.
+
+**Why this is necessary:** Acer/Insyde firmware implements a restrictive Secure Boot policy that requires explicit user approval even for Microsoft-signed bootloaders.
+
+**When you need to re-trust the bootloader:**
+
+| Event | Requires re-trust? | Why |
+|-------|-------------------|-----|
+| **BIOS/UEFI firmware update** | **YES** | BIOS updates can reset the trusted signature database |
+| **Reinstalling GRUB/shim packages** | Usually NO | Unless the EFI files are removed and recreated with new signatures |
+| **Kernel updates** | **NO** | Kernel updates don't affect bootloader trust |
+| **Acer battery driver updates** | **NO** | Module signing (MOK) is separate from bootloader trust |
+| **Windows updates** | **NO** | Windows doesn't modify Fedora's bootloader files |
+| **Changing GRUB theme/config** | **NO** | Only affects GRUB configuration, not the signed binaries |
+
+**Key point:** Once you manually trust `shimx64.efi`, that trust persists across reboots, kernel updates, and module updates. You only need to re-trust if:
+- You update the BIOS firmware
+- You manually delete and recreate the EFI boot files
+- You switch to a different bootloader (rare)
+
+**After reinstalling GRUB, you may also need to restore graphical terminal mode:**
+
+If GRUB menu shows garbled box-drawing characters instead of solid lines:
+
+```bash
+echo 'GRUB_TERMINAL=gfxterm' | sudo tee -a /etc/default/grub
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+```
+
+This restores Unicode character support without affecting custom background images or themes.
+
 **Prevention:** This Ansible role now checks bootloader integrity and warns if GRUB/shim files may be unsigned. If you need to customize GRUB appearance while maintaining Secure Boot compatibility:
 - Use GRUB themes that don't require replacing bootloader binaries
 - Modify only `/boot/grub2/grub.cfg` or `/etc/default/grub` (configuration files, not binaries)

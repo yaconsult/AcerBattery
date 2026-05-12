@@ -81,6 +81,11 @@
       
       Then regenerate GRUB config:
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+      
+      IMPORTANT for Acer/Insyde BIOS users:
+      Even with signed bootloaders, you may need to manually trust shimx64.efi in BIOS:
+        Security → Secure Boot → Select an UEFI file as trusted → EFI/fedora/shimx64.efi
+      This is required on some Acer systems even when bootloaders are properly signed.
   when:
     - ansible_os_family == 'RedHat' or ansible_distribution == 'Fedora'
     - bootloader_verify is defined
