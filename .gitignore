@@ -21,7 +21,6 @@ venv.bak/
 *.dsl
 !.venv/lib/python3.13/site-packages/ansible_collections/community/dns/plugins/public_suffix_list.dat
 
-.idea/
 uv.lock
 
 collections/
