@@ -235,6 +235,14 @@
     dest: /etc/kernel/postinst.d/99-acer-wmi-battery
     mode: '0755'
   become: true
+  when: ansible_os_family == 'Debian'
+
+- name: Remove kernel post-install hook on non-Debian systems
+  ansible.builtin.file:
+    path: /etc/kernel/postinst.d/99-acer-wmi-battery
+    state: absent
+  become: true
+  when: ansible_os_family != 'Debian'
 
 - name: Create kernel-install hook directory
   ansible.builtin.file:
@@ -242,6 +250,7 @@
     state: directory
     mode: '0755'
   become: true
+  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Fedora'
 
 - name: Install kernel-install hook
   ansible.builtin.template:
@@ -249,6 +258,14 @@
     dest: /etc/kernel/install.d/90-acer-wmi-battery.install
     mode: '0755'
   become: true
+  when: ansible_os_family == 'RedHat' or ansible_distribution == 'Fedora'
+
+- name: Remove kernel-install hook on non-RedHat systems
+  ansible.builtin.file:
+    path: /etc/kernel/install.d/90-acer-wmi-battery.install
+    state: absent
+  become: true
+  when: ansible_os_family != 'RedHat' and ansible_distribution != 'Fedora'
 
 - name: Remove modules-load.d configuration (systemd-modules-load can fail with stale DKMS artifacts)
   ansible.builtin.file:

@@ -405,18 +405,18 @@ specific kernel build/ABI (and its headers). After a kernel update, the previous
 match the running kernel ("version magic" mismatch) and can fail to load, so it must be rebuilt for the new
 kernel.
 
-Additionally, it installs OS-specific hooks as a fallback:
+Additionally, it installs one OS-specific hook as a fallback:
 
 - Debian/Ubuntu: `/etc/kernel/postinst.d/99-acer-wmi-battery`
 - Fedora/RHEL: `/etc/kernel/install.d/90-acer-wmi-battery.install`
 
-On Fedora/RHEL, the hook logs to:
+The role removes the hook for the other OS family during migration or reconfiguration. On Fedora/RHEL, the fallback first verifies whether DKMS already installed the module for the new kernel. A successful DKMS autoinstall is left untouched; rebuilding occurs only when the module is missing. The hook logs to:
 
 `/var/log/acer-wmi-battery-kernel-install.log`
 
-This provides two layers of protection:
+This provides two layers of protection without rebuilding successful installations:
 1. Standard DKMS automatic rebuilding
-2. Custom kernel post-install hook as a fallback
+2. OS-specific fallback when the expected module is absent
 
 After a kernel update, the module should be automatically rebuilt and loaded when you boot into the new kernel.
 
@@ -430,7 +430,7 @@ When updating or removing kernels on Fedora, you may see many RPM warnings like:
 
 **These warnings are harmless and unrelated to acer-wmi-battery.** They occur because RPM tries to remove optional kernel module directories that were never created. This is normal Fedora behavior.
 
-The acer-wmi-battery module will be cleanly removed by DKMS before the old kernel is uninstalled, and you'll see a message like:
+The acer-wmi-battery module will be cleanly removed by DKMS before the old kernel is uninstalled, and you may see a message like:
 
 ```
 dkms: removing module acer-wmi-battery/main for kernel 6.19.8-200.fc43.x86_64
@@ -444,7 +444,7 @@ To verify the module rebuilt successfully for the new kernel, check the log:
 sudo tail -50 /var/log/acer-wmi-battery-kernel-install.log
 ```
 
-You should see successful build, signing, and installation messages for each new kernel.
+You should see either successful build, signing, and installation messages or a message that the fallback rebuild was skipped because DKMS had already installed the module.
 
 ### Fedora release upgrades (DNF system-upgrade / GNOME/KDE Software)
 

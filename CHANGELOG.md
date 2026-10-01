@@ -8,6 +8,8 @@
 - Removed `test_examples_scripts.py` (tests now live in the new repo).
 
 ### Fixed (project analysis review)
+- Made kernel-update hooks OS-specific, removing the Debian hook from Fedora/RHEL systems and the Fedora/RHEL hook from Debian systems.
+- Changed the Fedora/RHEL fallback hook to preserve a successful DKMS autoinstall instead of immediately uninstalling and rebuilding the module.
 - Fixed module existence check using wrong hardcoded path (`/updates/dkms/`); now uses dynamic `find` to locate the module regardless of distro layout.
 - Fixed hardcoded `-v main` in Load module task; now uses `{{ acer_battery_version }}` consistently.
 - Fixed handlers (`rebuild_module`, `load_module`) missing `become: true` for privilege escalation.

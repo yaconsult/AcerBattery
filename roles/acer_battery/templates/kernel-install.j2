@@ -19,7 +19,8 @@ log_fallback() {
 }
 
 log() {
-  local msg="[$(date -Is)] $*"
+  local msg
+  msg="[$(date -Is)] $*"
   if ( umask 022 && touch "$LOGFILE" 2>/dev/null && echo "$msg" >> "$LOGFILE" 2>/dev/null ); then
     return 0
   fi
@@ -45,6 +46,12 @@ fi
 # Do not fail kernel installation; just log.
 if [ ! -e "/lib/modules/${KERNEL_VERSION}/build" ]; then
   log "Kernel build directory /lib/modules/${KERNEL_VERSION}/build not found; headers likely missing"
+fi
+
+if dkms status -m acer-wmi-battery -v {{ acer_battery_version }} -k "$KERNEL_VERSION" 2>/dev/null | grep -q 'installed' &&
+   find "/lib/modules/${KERNEL_VERSION}" -type f -name 'acer_wmi_battery.ko*' -print -quit 2>/dev/null | grep -q .; then
+  log "DKMS already installed acer-wmi-battery ({{ acer_battery_version }}) for kernel $KERNEL_VERSION; skipping fallback rebuild"
+  exit 0
 fi
 
 log "Rebuilding acer-wmi-battery ({{ acer_battery_version }}) for kernel $KERNEL_VERSION"

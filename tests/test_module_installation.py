@@ -1,13 +1,14 @@
 """Tests for the Acer WMI Battery module installation."""
 
 import re
-import tomllib
 from pathlib import Path
 from typing import cast
-from ansible.parsing.dataloader import DataLoader
-from ansible.inventory.manager import InventoryManager
-from ansible.inventory.host import Host
+
+import tomllib
 import yaml
+from ansible.inventory.host import Host
+from ansible.inventory.manager import InventoryManager
+from ansible.parsing.dataloader import DataLoader
 
 
 def test_inventory_file() -> None:
@@ -186,6 +187,7 @@ def test_kernel_install_template_exists() -> None:
         content = f.read()
     assert "kernel-install hook" in content
     assert "dkms" in content
+    assert "skipping fallback rebuild" in content
 
 
 def test_sign_modules_uses_template_vars() -> None:

@@ -1,6 +1,7 @@
 """Tests for DKMS configuration and module loading."""
 
 from pathlib import Path
+
 import yaml
 
 
@@ -140,21 +141,41 @@ def test_module_check_uses_dynamic_find() -> None:
     assert len(stat_tasks) == 0, "Should not use hardcoded /updates/dkms/ module path"
 
 
-def test_kernel_install_hook_is_installed() -> None:
-    """Test that a kernel-install hook is installed (Fedora/RHEL kernel updates)."""
+def test_kernel_hooks_are_os_specific() -> None:
+    """Test that each kernel hook is installed only on its supported OS family."""
     with open("roles/acer_battery/tasks/main.yml", "r") as f:
-        tasks_content = yaml.safe_load(f)
+        tasks = yaml.safe_load(f)
 
-    template_tasks = [
-        task
-        for task in tasks_content
+    template_tasks = {
+        task["ansible.builtin.template"]["dest"]: task
+        for task in tasks
         if isinstance(task, dict) and task.get("ansible.builtin.template") is not None
-    ]
+        and task["ansible.builtin.template"].get("dest") in {
+            "/etc/kernel/postinst.d/99-acer-wmi-battery",
+            "/etc/kernel/install.d/90-acer-wmi-battery.install",
+        }
+    }
 
-    kernel_install_tasks = [
-        task
-        for task in template_tasks
-        if task["ansible.builtin.template"].get("dest")
-        == "/etc/kernel/install.d/90-acer-wmi-battery.install"
+    postinst = template_tasks["/etc/kernel/postinst.d/99-acer-wmi-battery"]
+    assert postinst["when"] == "ansible_os_family == 'Debian'"
+
+    kernel_install = template_tasks[
+        "/etc/kernel/install.d/90-acer-wmi-battery.install"
     ]
-    assert len(kernel_install_tasks) == 1, "Should install kernel-install hook"
+    assert "ansible_os_family == 'RedHat'" in kernel_install["when"]
+    assert "ansible_distribution == 'Fedora'" in kernel_install["when"]
+
+
+def test_kernel_install_hook_skips_completed_dkms_install() -> None:
+    """Fedora fallback should not rebuild a module already installed by DKMS."""
+    content = Path("roles/acer_battery/templates/kernel-install.j2").read_text()
+
+    status_check = "dkms status -m acer-wmi-battery"
+    module_check = "-name 'acer_wmi_battery.ko*'"
+    skip_message = "skipping fallback rebuild"
+    rebuild_message = 'log "Rebuilding acer-wmi-battery'
+
+    assert status_check in content
+    assert module_check in content
+    assert skip_message in content
+    assert content.index(status_check) < content.index(rebuild_message)
